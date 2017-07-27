@@ -68,4 +68,4 @@ Getting the Source Code
 
 The source code of Malloovia is `available on Github <https://github.com/asi-uniovi/malloovia>`_,
 as well as the tests and the source of this documentation.
-You don't need it unless you are interested in :ref:`contributing`.
+You don't need it unless you are interested in :ref:`contributing <contributing>`.
