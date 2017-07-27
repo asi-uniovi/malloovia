@@ -33,6 +33,14 @@ Use linear programming to allocate applications to cloud infrastructure.
         >>> phase_i_solution = PhaseI(problem).solve()
         >>> phase_i_solution.solving_stats.optimal_cost
         178.0
+        >>> phase_i_solution.allocation._inspect()
+        AllocationInfo:
+          apps: (App('app0'), App('app1'))
+          instance_classes: (InstanceClass('m3large_r'), InstanceClass('m3large'))
+          workload_tuples: [(30, 1003), (32, 1200), (30, 1194)]
+          values: [[[3.0, 0.0], [3.0, 0.0]], [[3.0, 1.0], [3.0, 0.0]], [[3.0, 0.0], [3.0, 0.0]]]
+          units: 'vms'
+          repeats: [2, 1, 1]
 
 See :ref:`background` for details about the problem that Malloovia is solving.
 See :ref:`usage` for details about the high-level Malloovia API, and :ref:`Documentation for developers <developers>` for details about the implementation.
