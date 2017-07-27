@@ -93,10 +93,17 @@ class TestUtilModule(PresetDataPaths):
             sol_schema = yaml.safe_load(file)
         validate(sol_ii_dict, sol_schema)
 
-    def test_read_from_github(self):
-        problems = util.read_problems_from_github("problem1")
+    def test_read_dataset_from_github(self):
+        problems = util.read_problems_from_github(dataset="problem1")
         assert len(problems) == 1
         problem = list(problems.values())[0]
+        assert len(problem.instance_classes) == 2
+        assert len(problem.workloads) == 2
+        assert problem.workloads[0].values == (30, 32, 30, 30)
+        assert problem.workloads[1].values == (1003, 1200, 1194, 1003)
+
+    def test_read_single_problem_from_github(self):
+        problem = util.read_problems_from_github(dataset="problem1", id="example")
         assert len(problem.instance_classes) == 2
         assert len(problem.workloads) == 2
         assert problem.workloads[0].values == (30, 32, 30, 30)

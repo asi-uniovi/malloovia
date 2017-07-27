@@ -355,3 +355,11 @@ class PerformanceValues(object):                 # pylint: disable=R0903
         return ((ic, app, perfs[ic][app])
                 for ic in sorted(perfs)
                 for app in sorted(perfs[ic]))
+
+
+__all__ = [
+    'Workload', 'App', 'InstanceClass', 'LimitingSet',
+    'PerformanceSet', 'PerformanceValues',
+    'Problem', 'check_valid_problem',
+    'System', 'system_from_problem'
+]

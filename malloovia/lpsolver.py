@@ -699,3 +699,9 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
 
 # Monkeypatching
 COIN_CMD.solve_CBC = _solve_CBC_patched
+
+
+__all__ = [
+    'Malloovia', 'get_load_hist_from_load',
+    'MallooviaMaximizeTimeslotPerformance'
+    ]

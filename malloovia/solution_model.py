@@ -295,3 +295,9 @@ def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo:
 #     t = (1, 2)
 #     t_and_app = 2
 #     total = (0, 1, 2)
+
+__all__ = [
+    'Status', 'MallooviaStats', 'SolvingStats', 'GlobalSolvingStats',
+    'AllocationInfo', 'ReservedAllocation', 'SolutionI', 'SolutionII',
+    'compute_allocation_cost', 'compute_allocation_performance'
+]

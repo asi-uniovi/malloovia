@@ -28,26 +28,36 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
-def read_problems_from_github(name: str, base_url: str = None) -> Mapping[str, Problem]:
-    """Reads a problem from a GitHub repository.
+def read_problems_from_github(dataset: str, id: str = None,
+                              base_url: str = None) -> Union[Problem, Mapping[str, Problem]]:
+    """Reads a problem or set of problems from a GitHub repository.
 
     Args:
-        name: the name of the yaml file, without extension.
+        dataset: the name of the yaml file which contains the set of problems,
+            without extension.
+        id: the id of the particular problem to load, if omitted all problems
+            are read and a dictionary is returned, whose keys are problem ids
+            and the values are the :class:`Problem` instances.
         base_url: the url to the folder where the file is stored. If None,
-            it will read from <https://raw.githubusercontent.com/asi-uniovi/malloovia/master/tests/test_data/problems/>
+            it will read from https://raw.githubusercontent.com/asi-uniovi/malloovia/master/tests/test_data/problems/
 
     Returns:
         A dictionary whose keys are problem ids, and the values are
-        :class:`Problem` objects.
+        :class:`Problem` objects, or a single :class:`Problem` if the
+        id is passed as argument.
     """
 
     if base_url is None:
         base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
                      "/master/tests/test_data/problems/")
-    url = "{}/{}.yaml".format(base_url, name)
+    url = "{}/{}.yaml".format(base_url, dataset)
     with urllib.request.urlopen(url) as stream:
         data = yaml.safe_load(stream)
-    return problems_from_dict(data, name)
+    problems = problems_from_dict(data, dataset)
+    if id is None:
+        return problems
+    else:
+        return problems[id]
 
 def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[str, Problem]:
     """Takes data from a dictionary with a particular structure, and stores it in
@@ -553,3 +563,9 @@ def _dict_to_yaml(data, level):
             value = value.name
         lines.append("{}{}: {}".format("  "*level, key, value))
     return lines
+
+
+__all__ = [
+    'read_problems_from_yaml', 'read_problems_from_github',
+    'problems_to_yaml', 'solutions_to_yaml'
+]

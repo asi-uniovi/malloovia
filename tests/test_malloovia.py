@@ -449,7 +449,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         optimal_cost = solution.solving_stats.optimal_cost
 
         # Solve it again, but limit the time so that the solver is aborted
-        solution = phases.PhaseI(problem_phase_i).solve(solver=COIN(maxSeconds=0.1))
+        solution = phases.PhaseI(problem_phase_i).solve(solver=COIN(maxSeconds=0.01))
         assert solution.solving_stats.algorithm.status == Status.aborted
 
         # When aborted, the optimal cost is not found
