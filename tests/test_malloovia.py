@@ -50,7 +50,7 @@ class TestProblemCreation:
                 })
             )
         problem = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance,),
@@ -81,7 +81,7 @@ class TestProblemCreation:
                 })
             )
         problem = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance1, instance2),
@@ -113,7 +113,7 @@ class TestProblemCreation:
                 })
             )
         problem = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance1, instance2),
@@ -152,7 +152,7 @@ class TestProblemCreation:
                 })
             )
         problem_phase_i = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
@@ -198,7 +198,7 @@ class TestProblemCreation:
             )
 
         problem_phase_i = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
@@ -238,7 +238,7 @@ class TestProblemCreation:
                 })
             )
         problem_phase_i = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
@@ -283,7 +283,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
             })
         )
         problem = Problem(
-            id="phaseI",
+            id="example",
             name="PhaseI",
             workloads=workloads,
             instance_classes=(i0,i1),
@@ -317,8 +317,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_read_problem1_and_solve_it(self):
         """Solve problem 1 which has optimal cost of 178"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         # Some trivial checks
         assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
@@ -348,8 +348,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_read_infeasible_problem2_and_solve_it(self):
         """Solve problem2, which is infeasible"""
         problems = util.read_problems_from_yaml(self.problems["problem2"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         # Some trivial checks
         assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
@@ -370,8 +370,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_read_infeasible_problem2_and_solve_it_relaxed(self):
         """Solve problem2, which is infeasible even if relaxed"""
         problems = util.read_problems_from_yaml(self.problems["problem2"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         # Some trivial checks
         assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
@@ -392,8 +392,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_read_problem3_and_solve_it(self):
         """Solve problem 3 which has optimal cost of 226"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         solution = phases.PhaseI(problem_phase_i).solve()
         assert solution.solving_stats.algorithm.status == Status.optimal
@@ -408,8 +408,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_read_problem3_and_solve_it_relaxed(self):
         """Solve problem 3 in relaxed form which has optimal cost of 180"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         # Some trivial checks
         assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
@@ -428,8 +428,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
     def test_abort_solver(self):
         """Solve one problem too big for the fixed maxSeconds"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
         app0 = problem_phase_i.workloads[0].app
         app1 = problem_phase_i.workloads[1].app
 
@@ -455,8 +455,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         """Load any problem and mock pulp so that it raises PulpError, to test
         if maloovia handles correctly the exception"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         phaseI = phases.PhaseI(problem_phase_i)
 
@@ -494,7 +494,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
                 })
             )
         problem = Problem(
-            id="phaseI",
+            id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
@@ -556,7 +556,7 @@ class TestMallooviaApi(PresetProblemPaths):
                 })
             )
         system = System(
-            id="phaseI",
+            id="example",
             name="Test problem",
             apps=(app0, app1),
             instance_classes=(instance,),
@@ -569,8 +569,8 @@ class TestMallooviaApi(PresetProblemPaths):
     def test_read_problem1_and_solve_it(self):
         """Solve problem 1 which has optimal cost of 178"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         system = system_from_problem(problem_phase_i)
         lp = lpsolver.Malloovia(system, problem_phase_i.workloads)
@@ -595,8 +595,8 @@ class TestMallooviaApi(PresetProblemPaths):
     def test_read_problem1_fixing_reserved_vms(self):
         """Solve problem 1, but forcing the number of reserved VMS"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
         rsv_instance = problem_phase_i.instance_classes[1]
         assert rsv_instance.is_reserved
 
@@ -626,8 +626,8 @@ class TestMallooviaApi(PresetProblemPaths):
         """Solve problem 1, but forcing the number of ondemand VMS. This is not useful
         in a real case, but Mallovia allows for it, and so this test covers that path."""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
         dem_instance = problem_phase_i.instance_classes[0]
         assert not dem_instance.is_reserved
 
@@ -658,8 +658,8 @@ class TestMallooviaApi(PresetProblemPaths):
         """Solve phaseI using malloovia and the full workload, then use mallovia again several
         times to emulate phase II, passing 1 timeslot at time"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem = problems['phaseI']
+        assert "example" in problems
+        problem = problems['example']
 
         solution = phases.PhaseI(problem).solve()
         rsv_instances = solution.reserved_allocation.vms_number[0]
@@ -736,8 +736,8 @@ class TestMallooviaApi(PresetProblemPaths):
         """Solve phaseI using malloovia and the full workload, then use mallovia again several
         times to emulate phase II, passing 1 timeslot at time, using Omniscent predictor"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem = problems['phaseI']
+        assert "example" in problems
+        problem = problems['example']
 
         solution = phases.PhaseI(problem).solve()
         rsv_instances = solution.reserved_allocation.vms_number[0]
@@ -805,8 +805,8 @@ class TestPhaseII(PresetProblemPaths):
     def test_phase_ii_complete(self):
         """Solve phaseI and phaseII"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem = problems['phaseI']
+        assert "example" in problems
+        problem = problems['example']
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
@@ -842,8 +842,8 @@ class TestPhaseII(PresetProblemPaths):
         """Solves phaseI and then uses for phase II a different STWP which causes
         unfeasible timeslots"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem = problems['phaseI']
+        assert "example" in problems
+        problem = problems['example']
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
@@ -927,8 +927,8 @@ class TestModelClasses(PresetProblemPaths):
     def test_Allocation_functions(self):
         # Read a problem to get instance class data
         problems = util.read_problems_from_yaml(self.problems["problem1"])
-        assert "phaseI" in problems
-        problem = problems['phaseI']
+        assert "example" in problems
+        problem = problems['example']
 
         sol_i = phases.PhaseI(problem).solve()
 

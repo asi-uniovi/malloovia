@@ -2,6 +2,7 @@
 
 from typing import (Mapping, Sequence, Tuple, Union, Any, List)
 import os.path
+import urllib.request
 import yaml
 
 from .model import (
@@ -26,6 +27,27 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     with open(filename) as stream:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
+
+def read_problems_from_github(name: str, base_url: str = None) -> Mapping[str, Problem]:
+    """Reads a problem from a GitHub repository.
+
+    Args:
+        name: the name of the yaml file, without extension.
+        base_url: the url to the folder where the file is stored. If None,
+            it will read from <https://raw.githubusercontent.com/asi-uniovi/malloovia/master/tests/test_data/problems/>
+
+    Returns:
+        A dictionary whose keys are problem ids, and the values are
+        :class:`Problem` objects.
+    """
+
+    if base_url is None:
+        base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
+                     "/master/tests/test_data/problems/")
+    url = "{}/{}.yaml".format(base_url, name)
+    with urllib.request.urlopen(url) as stream:
+        data = yaml.safe_load(stream)
+    return problems_from_dict(data, name)
 
 def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[str, Problem]:
     """Takes data from a dictionary with a particular structure, and stores it in

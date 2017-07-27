@@ -57,8 +57,8 @@ class TestUtilModule(PresetDataPaths):
         """Reads problem1, solves first phase it and dumps the solution, which is validated
         against malloovia schema"""
         problems = util.read_problems_from_yaml(self.get_problem("problem1.yaml"))
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         sol_i = phases.PhaseI(problem_phase_i).solve()
         assert sol_i.solving_stats.algorithm.status == Status.optimal
@@ -74,8 +74,8 @@ class TestUtilModule(PresetDataPaths):
         """Reads problem1, solves second phase and dumps the solution, which is validated
         against malloovia schema"""
         problems = util.read_problems_from_yaml(self.get_problem("problem1.yaml"))
-        assert "phaseI" in problems
-        problem_phase_i = problems['phaseI']
+        assert "example" in problems
+        problem_phase_i = problems['example']
 
         sol_i = phases.PhaseI(problem_phase_i).solve()
         assert sol_i.solving_stats.algorithm.status == Status.optimal
@@ -92,3 +92,12 @@ class TestUtilModule(PresetDataPaths):
         with open(self.get_schema("malloovia.schema.yaml")) as file:
             sol_schema = yaml.safe_load(file)
         validate(sol_ii_dict, sol_schema)
+
+    def test_read_from_github(self):
+        problems = util.read_problems_from_github("problem1")
+        assert len(problems) == 1
+        problem = list(problems.values())[0]
+        assert len(problem.instance_classes) == 2
+        assert len(problem.workloads) == 2
+        assert problem.workloads[0].values == (30, 32, 30, 30)
+        assert problem.workloads[1].values == (1003, 1200, 1194, 1003)

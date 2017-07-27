@@ -67,10 +67,10 @@ Performances:
         app: *app1
         value: 500
 Problems:
-  - &phaseI
-    id: phaseI
-    name: Test problem
+  - &example
+    id: example
+    name: Example problem
     workloads: [*wl_app0, *wl_app1]
     instance_classes: [*m3large, *m3large_r]
     performances: *test_perfs
-    description: Nondescript
+    description: Example problem which has limits on the number of cores

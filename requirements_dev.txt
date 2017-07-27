@@ -12,3 +12,4 @@ sphinx-autodoc-typehints==1.2.0
 
 pytest==2.9.2
 pytest-runner==2.11.1
+pytest-cov==2.5.1
