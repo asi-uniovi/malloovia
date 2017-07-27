@@ -8,15 +8,6 @@ Malloovia
 
 Release v\ |version|. (:ref:`Installation <install>`)
 
-.. image:: https://img.shields.io/badge/install%20with-conda-brightgreen.svg?style=flat-square
-   https://www.continuum.io/downloads
-
-.. image:: https://img.shields.io/badge/python-3-blue.svg?style=flat-square
-   https://www.python.org/download/releases/3.0/
-
-.. image:: https://img.shields.io/badge/PuLP-≥1.6.0-blue.svg?style=flat-square
-   https://pythonhosted.org/PuLP/
-
 .. Commented out
     .. image:: https://img.shields.io/pypi/v/malloovia.svg
             :target: https://pypi.python.org/pypi/malloovia
