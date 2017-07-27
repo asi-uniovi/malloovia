@@ -442,14 +442,20 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         )
 
         problem_phase_i = problem_phase_i._replace(workloads=workloads)
+
+        # First solve it with time enough, to obtain the optimal solution
+        solution = phases.PhaseI(problem_phase_i).solve(solver=COIN(maxSeconds=20))
+        assert solution.solving_stats.algorithm.status == Status.optimal
+        optimal_cost = solution.solving_stats.optimal_cost
+
+        # Solve it again, but limit the time so that the solver is aborted
         solution = phases.PhaseI(problem_phase_i).solve(solver=COIN(maxSeconds=0.1))
         assert solution.solving_stats.algorithm.status == Status.aborted
 
         # When aborted, the optimal cost is not found
         assert solution.solving_stats.optimal_cost is None
         # But malloovia can give a lower bound
-        # (we know that this problem has an optimal solution of 11610.0)
-        assert solution.solving_stats.algorithm.lower_bound <= 11610.0
+        assert solution.solving_stats.algorithm.lower_bound <= optimal_cost
 
     def test_unknown_error_in_pulp(self):
         """Load any problem and mock pulp so that it raises PulpError, to test
