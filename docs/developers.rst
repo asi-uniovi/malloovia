@@ -1,8 +1,13 @@
-malloovia package
-=================
+.. _developers:
 
-Submodules
-----------
+============================
+Developer's documentation
+============================
+
+This section details the different classes and methods which are used in
+the internal implementation of Malloovia. This detail level is needed only
+if you are interested in :ref:`contributing <contributing>`. Otherwise refer to
+the higher-level API described in :ref:`usage`.
 
 malloovia.lpsolver module
 -------------------------
