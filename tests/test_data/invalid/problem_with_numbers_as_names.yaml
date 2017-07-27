@@ -1,0 +1,121 @@
+# This example uses YAML references and pointers instead of using string
+# ids as references, to be solved later by python
+#
+# This forces the ordering of the sections, so that when a pointer is used
+# the pointed reference was already declared. In practice this means that
+# the following ordering should be used:
+#
+#    Limiting_sets, Instance_classes, Apps, Workloads, Performances, Problems
+
+# Each &foo provides an "anchor" for that object. When that object has to
+# be used  as a value for a different object *foo is used
+Limiting_sets:
+  - &us_east
+    id: us_east
+    max_vms: 20
+    max_cores: 0
+  - &us_west_m4
+    id: us_west_m4
+    max_vms: 5
+    max_cores: 0
+
+Instance_classes:
+  - &ic1
+    id: ic1
+    name: m3.large
+    limiting_sets: [*us_east]
+    max_vms: 20
+    is_reserved: true
+    price: 2.3
+  - &ic2
+    id: ic2
+    name: m4.medium
+    limiting_sets: [*us_west_m4]
+    max_vms: 5
+    is_reserved: false
+    price: 4.4
+  - &ic3
+    id: ic3
+    name: m4.large
+    limiting_sets: [*us_west_m4]
+    max_vms: 5
+    is_reserved: false
+    price: 8.2
+
+Apps:
+  - &App1
+    id: 1
+    name: Web server
+  - &App2
+    id: 2
+    name: Database
+
+Workloads:
+  - &ltwp_app1
+    id: ltwp_app1
+    description: Randomly generated
+    values: [1,22,5,6,10,20,50,20]
+    intra_slot_distribution: uniform
+    app: *App1
+
+  - &ltwp_app2
+    id: ltwp_app2
+    description: Randomly generated
+    values: [30,2,3,123,12,213,12,3]
+    intra_slot_distribution: poisson
+    app: *App2
+
+  - &stwp_app1
+    id: stwp_app1
+    description: Randomly generated, similar to ltwp_app1
+    values: [1,22,5,6,12,20,50,19]
+    intra_slot_distribution: uniform
+    app: *App1
+
+  - &stwp_app2
+    id: stwp_app2
+    description: Randomly generated, similar to ltwp_app2
+    values: [30,2,3,120,15,210,10,4]
+    intra_slot_distribution: poisson
+    app: *App2
+
+
+Performances:
+  - &Performance1
+    id: Performance1
+    values:
+      - instance_class: *ic1
+        app: *App1
+        value: 5
+      - instance_class: *ic1
+        app: *App2
+        value: 6
+      - instance_class: *ic2
+        app: *App1
+        value: 4
+      - instance_class: *ic2
+        app: *App2
+        value: 3
+      - instance_class: *ic3
+        app: *App1
+        value: 5
+      - instance_class: *ic3
+        app: *App2
+        value: 4
+
+Problems:
+  - &phaseI
+    id: phaseI
+    name: Example Phase I
+    description: Simple example with two apps and three instance classes, LTWP for phase I
+    workloads: [*ltwp_app1, *ltwp_app2]
+    instance_classes: [*ic1, *ic2, *ic3]
+    performances: *Performance1
+
+  - &phaseII
+    id: phaseII
+    name: Example Phase II
+    description: Simple example with two apps and three instance classes, STWP for phase II
+    workloads: [*stwp_app1, *stwp_app2]
+    instance_classes: [*ic1, *ic2]
+    performances: *Performance1

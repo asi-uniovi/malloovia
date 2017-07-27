@@ -1,0 +1,140 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+$id: "http://lloovia.org/draft-01/solution-schema#"
+
+title: Schema for malloovia solutions
+
+
+definitions:
+  nonNegativeInteger: {type: integer, minimum: 0}
+  positiveInteger: {type: integer, minimum: 1}
+  nonNegative: {type: number, minimum: 0}
+  numberOrNull:
+    oneOf:
+      - {type: number}
+      - {type: "null"}
+  arrayOfIds:
+    type: array
+    items: {type: string}
+    uniqueItems: true
+  arrayOfNumbers:
+    type: array
+    items: {type: number}
+  status:
+      type: string
+      enum: [optimal, trivial, infeasible, aborted, unknown_error, unknown]
+  status_global:
+      type: string
+      enum: [optimal, overfull]
+  solving_stats:
+      type: object
+      properties:
+        algorithm: { $ref: "#/definitions/algorithm_used"}
+        frac_gap: { $ref: "#/definitions/nonNegative" }
+        max_seconds: { $ref: "#/definitions/nonNegative" }
+        status: { $ref: "#/definitions/status" }
+        lower_bound: {$ref: "#/definitions/numberOrNull"}
+        optimal_cost: { type: number }
+        creation_time: { $ref: "#/definitions/nonNegative" }
+        solving_time: { $ref: "#/definitions/nonNegative" }
+      required: [frac_gap, max_seconds, status, lower_bound, optimal_cost, creation_time, solving_time]
+      additionalProperties: false
+
+  global_solving_stats:
+    type: object
+    properties:
+      default_algorithm: {$ref: "#/definitions/algorithm_used"}
+      default_frac_gap: { $ref: "#/definitions/nonNegative" }
+      default_max_seconds: { $ref: "#/definitions/nonNegative" }
+      creation_time: { $ref: "#/definitions/nonNegative" }
+      solving_time: { $ref: "#/definitions/nonNegative" }
+      status: { $ref: "#/definitions/status_global" }
+      optimal_cost: { type: number }
+    required: [default_frac_gap, default_max_seconds, creation_time, solving_time, status, optimal_cost]
+
+  algorithms:
+    malloovia:
+      type: object
+      properties:
+        malloovia:
+          type: object
+          properties:
+            gcd: {type: boolean}
+            gcd_multiplier: {$ref: "#/definitions/nonNegative"}
+            n_levels: {$ref: "#/definitions/nonNegativeInteger"}
+          required: [gcd]
+        required: [malloovia]
+      additionalProperties: false
+
+    lloovia:
+      type: object
+      properties:
+        lloovia:
+          type: object
+          properties:
+            binning: {type: boolean}
+            n_bins: {$ref: "#/definitions/nonNegative"}
+            effective_bins: {$ref: "#/definitions/nonNegative"}
+          required: [binning]
+        required: [lloovia]
+      additionalProperties: false
+
+  algorithm_used:
+    oneOf:
+      - {$ref: "#/definitions/algorithms/lloovia"}
+      - {$ref: "#/definitions/algorithms/malloovia"}
+
+  phase_I_allocation:
+    type: object
+    properties:
+      instance_classes: {$ref: "#/definitions/arrayOfIds"}
+      vms_number: {$ref: "#/definitions/arrayOfNumbers"}
+    required: [instance_classes, vms_number]
+    additionalProperties: false
+
+  phase_II_allocation:
+    type: object
+    properties:
+      apps: {$ref: "#/definitions/arrayOfIds"}
+      instance_classes: {$ref: "#/definitions/arrayOfIds"}
+      vms_number:
+        type: array
+        items:
+          type: array
+          items: {$ref; "#/definitions/arrayOfNumbers"}
+
+  phase_I_solution:
+    type: object
+    properties:
+      phase: {$ref: "#/definitions/positiveInteger"}
+      id: {type: string}
+      problem: {type: string}
+      solving_stats: {$ref: "#/definitions/solving_stats"}
+      reserved_allocation: {$ref: "#/definitions/phase_I_allocation"}
+    required: [id, problem, solving_stats, reserved_allocation]
+    additionalProperties: false
+
+  phase_II_solution:
+    type: object
+    properties:
+      phase: {$ref: "#/definitions/positiveInteger"}
+      id: {type: string}
+      problem: {type: string}
+      previous_phase: {type: string}
+      solving_stats:
+        type: array
+        items: {$ref: "#/definitions/solving_stats"}
+      global_solving_stats: {$ref: "#/definitions/global_solving_stats"}
+      allocation: {$ref: "#/definitions/phase_II_allocation"}
+
+  Solution:
+    oneOf:
+      - {$ref: "#/definitions/phase_I_solution"}
+      - {$ref: "#/definitions/phase_II_solution"}
+
+type: object
+additionalProperties: false
+properties:
+  Problems_from_file: {type: string}
+  Solutions:
+    type: array
+    items: {$ref: "#/definitions/Solution"}

@@ -1,0 +1,110 @@
+Problems_from_file: problem_example.yaml
+
+# Note, these solutions are not real, they are not optinal and probably they are not
+# feasible either. The numbers are put at random, with the only purpose of validating
+# the syntax of the YAML file
+Solutions:
+- &solution_phase_I
+  phase: 1
+  id: solution_phase_I
+  problem: *phaseI
+  solving_stats:
+    optimal_cost: 1234.23
+    creation_time: 3.1
+    solving_time: 15.2
+    algorithm:
+      malloovia:
+        gcd: true
+        status: optimal
+        gcd_multiplier: 5
+        n_levels: 200
+        frac_gap: 0.01
+        max_seconds: 300
+        lower_bound: null
+  reserved_allocation:
+    instance_classes: [*ic1]
+    vms_number: [20]
+  allocation:
+    apps: [*App1, *App2]
+    instance_classes:  [*ic1, *ic2]
+    workload_tuples: [[1,30], [22, 2], [5,3], [6,123], [10,12], [20,213], [50,12], [20,3]]
+    repeats: [1, 1, 1, 1, 1, 1, 1, 1]
+    vms_number:
+      - # l0 (1,30)
+        - [10, 15]
+        - [10, 15]
+      - # l1 (22, 2)
+        - [10, 5]
+        - [10, 0]
+      - # l3 (5,3)
+        - [10, 5]
+        - [10, 2]
+
+- &solution_phase_II
+  phase: 2
+  id: solution_phase_II
+  problem: *phaseII
+  previous_phase: *solution_phase_I
+  solving_stats:
+    - # t: 0
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          status: optimal
+          frac_gap: 0.01
+          max_seconds: 300
+          lower_bound: null
+    - # t: 1
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          frac_gap: 0.01
+          max_seconds: 300
+          status: optimal
+          lower_bound: null
+      # ...
+    - # t: 8760
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          frac_gap: 0.01
+          max_seconds: 300
+          status: optimal
+          lower_bound: null
+
+  global_solving_stats:
+    default_algorithm:
+      malloovia:
+        gcd: False
+        frac_gap: 0.01
+        max_seconds: 300
+        status: optimal
+    creation_time: 200
+    solving_time: 300
+    optimal_cost: 123.1
+    status: optimal
+
+  # Alternativa: una especie de tabla pandas que separe índices, nombres de columna y valores
+  allocation:
+    apps: [*App1, *App2]
+    instance_classes: [*ic1, *ic2, *ic3]
+    vms_number:
+      - # t: 0
+        - [20, 0, 0]
+        - [0, 0, 0]
+      - # t: 1
+        - [15, 2, 0]
+        - [5, 1, 0]
+        # ...
+      - # t: 8760
+        - [10, 2, 0]
+        - [10, 1, 1]

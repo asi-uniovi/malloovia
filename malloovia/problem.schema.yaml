@@ -1,0 +1,134 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+$id: "http://lloovia.org/draft-01/schema#"
+
+title: Schema for malloovia problem definitions, advanced format
+
+definitions:
+  # Some new "primitive" types
+  nonNegativeInteger: {type: integer, minimum: 0 }
+  nonNegativeIntegerDefault0:
+     allOf:
+       - $ref: "#/definitions/nonNegativeInteger"
+       - default: 0
+  arrayOfIds:
+     type: array
+     items: {type: string}
+  statisticalDistribution:
+      type: string
+      enum: [uniform, poisson, normal]
+      default: uniform
+
+  # Types for the main entities in the problem specification
+  App:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+    required: [id, name]
+    additionalProperties: false
+
+  Limiting_set:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      max_cores: {$ref: "#/definitions/nonNegativeIntegerDefault0"}
+      max_vms: {$ref: "#/definitions/nonNegativeIntegerDefault0"}
+    required: [id]
+    additionalProperties: false
+
+  Instance_class:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      price: {type: number}
+      is_reserved: {type: boolean}
+      max_vms: {$ref: "#/definitions/nonNegativeInteger"}
+      limiting_sets:
+        type: array
+        items: {$ref: "#/definitions/Limiting_set"}
+    required: [id, name, max_vms, price, is_reserved, limiting_sets]
+    additionalProperties: false
+
+  Workload:
+    type: object
+    properties:
+      id: {type: string}
+      app: {$ref: "#/definitions/App"}
+      description: {type: string}
+      filename: {type: string}
+      intra_slot_distribution: {$ref: "#/definitions/statisticalDistribution"}
+      values:
+        type: array
+        items: {type: number}
+    required: [id, app]
+    oneOf:
+    - required: [values]
+    - required: [filename]
+    additionalProperties: false
+
+  PerformanceValue:
+    type: object
+    properties:
+      instance_class: {$ref: "#/definitions/Instance_class"}
+      app: {$ref: "#/definitions/App"}
+      value: {type: number, minimum: 0}
+    required: [instance_class, app, value]
+    additionalProperties: false
+
+  PerformanceSet:
+    type: object
+    properties:
+      id: {type: string}
+      values:
+        type: array
+        items: {$ref: "#/definitions/PerformanceValue"}
+    required: [id, values]
+    additionalProperties: false
+
+  Problem:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      description: {type: string}
+      instance_classes:
+        type: array
+        items: {$ref: "#/definitions/Instance_class"}
+      workloads:
+        type: array
+        items: {$ref: "#/definitions/Workload"}
+      performances:
+        type: object
+        items: {$ref: "#/definitions/PerformanceSet"}
+    required: [id, name, workloads, instance_classes, performances]
+    additionalProperties: false
+
+# Definition of "main" format of the problem specification
+type: object
+additionalProperties: false
+properties:
+  Apps:
+    type: array
+    items: { $ref: "#/definitions/App" }
+
+  Limiting_sets:
+    type: array
+    items: { $ref: "#/definitions/Limiting_set" }
+
+  Instance_classes:
+    type: array
+    items: { $ref: "#/definitions/Instance_class" }
+
+  Performances:
+    type: array
+    items: {$ref: "#/definitions/PerformanceSet"}
+
+  Workloads:
+    type: array
+    items: {$ref: "#/definitions/Workload"}
+
+  Problems:
+    type: array
+    items: {$ref: "#/definitions/Problem"}

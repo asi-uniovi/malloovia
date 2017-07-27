@@ -1,0 +1,291 @@
+$schema: "http://json-schema.org/draft-06/schema#"
+$id: "http://malloovia.org/draft-01/schema#"
+
+title: Schema for malloovia problems and solutions
+
+definitions:
+  # Some new "primitive" types
+  nonNegativeInteger: {type: integer, minimum: 0 }
+  positiveInteger: {type: integer, minimum: 1}
+  nonNegative: {type: number, minimum: 0}
+  nonNegativeIntegerDefault0:
+     allOf:
+       - $ref: "#/definitions/nonNegativeInteger"
+       - default: 0
+  positiveIntegerDefault1:
+     allOf:
+       - $ref: "#/definitions/positiveInteger"
+       - default: 1
+  numberOrNull:
+    oneOf:
+      - {type: number}
+      - {type: "null"}
+  arrayOfNumbers:
+    type: array
+    items: {type: number}
+  statisticalDistribution:
+      type: string
+      enum: [uniform, poisson, normal]
+      default: uniform
+
+  # Some enumerates for solution status
+  status:
+      type: string
+      enum: [optimal, infeasible, integer_infeasible, overfull, trivial, aborted, cbc_error, unknown]
+  status_global:
+      type: string
+      enum: [optimal, overfull]
+
+  # Types for the main entities in the problem specification
+  App:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+    required: [id, name]
+    additionalProperties: false
+
+  Limiting_set:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      max_cores: {$ref: "#/definitions/nonNegativeIntegerDefault0"}
+      max_vms: {$ref: "#/definitions/nonNegativeIntegerDefault0"}
+    required: [id]
+    additionalProperties: false
+
+  Instance_class:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      price: {type: number}
+      is_reserved: {type: boolean}
+      max_vms: {$ref: "#/definitions/nonNegativeInteger"}
+      cores: {$ref: "#/definitions/positiveIntegerDefault1"}
+      limiting_sets:
+        type: array
+        items: {$ref: "#/definitions/Limiting_set"}
+    required: [id, name, max_vms, price, is_reserved, limiting_sets]
+    additionalProperties: false
+
+  Workload:
+    type: object
+    properties:
+      id: {type: string}
+      app: {$ref: "#/definitions/App"}
+      description: {type: string}
+      filename: {type: string}
+      intra_slot_distribution: {$ref: "#/definitions/statisticalDistribution"}
+      values:
+        type: array
+        items: {type: number}
+    required: [id, app]
+    oneOf:
+    - required: [values]
+    - required: [filename]
+    additionalProperties: false
+
+  PerformanceValue:
+    type: object
+    properties:
+      instance_class: {$ref: "#/definitions/Instance_class"}
+      app: {$ref: "#/definitions/App"}
+      value: {type: number, minimum: 0}
+    required: [instance_class, app, value]
+    additionalProperties: false
+
+  PerformanceSet:
+    type: object
+    properties:
+      id: {type: string}
+      values:
+        type: array
+        items: {$ref: "#/definitions/PerformanceValue"}
+    required: [id, values]
+    additionalProperties: false
+
+  Problem:
+    type: object
+    properties:
+      id: {type: string}
+      name: {type: string}
+      description: {type: string}
+      instance_classes:
+        type: array
+        items: {$ref: "#/definitions/Instance_class"}
+      workloads:
+        type: array
+        items: {$ref: "#/definitions/Workload"}
+      performances:
+        type: object
+        items: {$ref: "#/definitions/PerformanceSet"}
+    required: [id, name, workloads, instance_classes, performances]
+    additionalProperties: false
+
+  # Types used in the problem description
+  solving_stats:
+      type: object
+      properties:
+        algorithm: { $ref: "#/definitions/algorithm_used"}
+        optimal_cost: { $ref: "#/definitions/numberOrNull" }
+        creation_time: { $ref: "#/definitions/nonNegative" }
+        solving_time: { $ref: "#/definitions/nonNegative" }
+      required: [optimal_cost, creation_time, solving_time]
+      additionalProperties: false
+
+  global_solving_stats:
+    type: object
+    properties:
+      default_algorithm: { $ref: "#/definitions/algorithm_used" }
+      creation_time: { $ref: "#/definitions/nonNegative" }
+      solving_time: { $ref: "#/definitions/nonNegative" }
+      optimal_cost: { type: number }
+      status: { $ref: "#/definitions/status" }
+    required: [creation_time, solving_time, optimal_cost, status]
+    additionalProperties: false
+
+  algorithms:
+    malloovia:
+      type: object
+      properties:
+        malloovia:
+          type: object
+          properties:
+            gcd: {type: boolean}
+            status: { $ref: "#/definitions/status" }
+            gcd_multiplier: {$ref: "#/definitions/nonNegative"}
+            n_levels: {$ref: "#/definitions/nonNegativeInteger"}
+            frac_gap: { $ref: "#/definitions/numberOrNull" }
+            max_seconds: { $ref: "#/definitions/numberOrNull" }
+            lower_bound: {$ref: "#/definitions/numberOrNull"}
+          required: [gcd, status, frac_gap, max_seconds]
+        required: [malloovia]
+      additionalProperties: false
+
+    lloovia:
+      type: object
+      properties:
+        lloovia:
+          type: object
+          properties:
+            binning: {type: boolean}
+            status: { $ref: "#/definitions/status" }
+            n_bins: {$ref: "#/definitions/nonNegative"}
+            effective_bins: {$ref: "#/definitions/nonNegative"}
+            frac_gap: { $ref: "#/definitions/numberOrNull" }
+            max_seconds: { $ref: "#/definitions/numberOrNull" }
+            lower_bound: {$ref: "#/definitions/numberOrNull"}
+          required: [binning, status, frac_gap, max_seconds]
+        required: [lloovia]
+      additionalProperties: false
+
+  algorithm_used:
+    oneOf:
+      - {$ref: "#/definitions/algorithms/lloovia"}
+      - {$ref: "#/definitions/algorithms/malloovia"}
+
+  reserved_allocation:
+    type: object
+    properties:
+      instance_classes:
+        type: array
+        items: {$ref: "#/definitions/Instance_class"}
+      vms_number: {$ref: "#/definitions/arrayOfNumbers"}
+    required: [instance_classes, vms_number]
+    additionalProperties: false
+
+  allocation:
+    type: object
+    additionalProperties: false
+    properties:
+      apps:
+        type: array
+        items: {$ref: "#/definitions/App"}
+      instance_classes:
+        type: array
+        items: {$ref: "#/definitions/Instance_class"}
+      workload_tuples:
+        type: array
+        items: {type: array, items: {$ref: "#/definitions/nonNegative"}}
+      repeats:
+        type: array
+        items: {$ref: "#/definitions/nonNegative"}
+      vms_number:
+        type: array
+        items:
+          type: array
+          items: {$ref; "#/definitions/arrayOfNumbers"}
+    required: [apps, instance_classes, vms_number]
+
+  phase_I_solution:
+    type: object
+    properties:
+      id: {type: string}
+      phase: {$ref: "#/definitions/positiveInteger"}
+      problem: {$ref: "#/definitions/Problem"}
+      solving_stats: {$ref: "#/definitions/solving_stats"}
+      reserved_allocation: {$ref: "#/definitions/reserved_allocation"}
+      allocation: {$ref: "#/definitions/allocation"}
+    required: [id, problem, solving_stats, reserved_allocation]
+    additionalProperties: false
+
+  phase_II_solution:
+    type: object
+    properties:
+      phase: {$ref: "#/definitions/positiveInteger"}
+      id: {type: string}
+      problem: {$ref: "#/definitions/Problem"}
+      previous_phase: {$ref: "#/definitions/phase_I_solution"}
+      solving_stats:
+        type: array
+        items: {$ref: "#/definitions/solving_stats"}
+      global_solving_stats: {$ref: "#/definitions/global_solving_stats"}
+      allocation: {$ref: "#/definitions/allocation"}
+
+  Solution:
+    OneOf:
+      - {$ref: "#/definitions/phase_I_solution"}
+      - {$ref: "#/definitions/phase_II_solution"}
+
+# Definition of "main" format of the problem specification
+type: object
+additionalProperties: false
+properties:
+  Apps:
+    type: array
+    items: { $ref: "#/definitions/App" }
+
+  Limiting_sets:
+    type: array
+    items: { $ref: "#/definitions/Limiting_set" }
+
+  Instance_classes:
+    type: array
+    items: { $ref: "#/definitions/Instance_class" }
+
+  Performances:
+    type: array
+    items: {$ref: "#/definitions/PerformanceSet"}
+
+  Workloads:
+    type: array
+    items: {$ref: "#/definitions/Workload"}
+
+  Problems:
+    type: array
+    items: {$ref: "#/definitions/Problem"}
+
+  Problems_from_file:
+    type: string
+
+  Solutions:
+    type: array
+    items: 
+    - {$ref: "#/definitions/phase_I_solution"}
+    - {$ref: "#/definitions/phase_II_solution"}
+
+oneOf:
+  - required: [Apps, Limiting_sets, Instance_classes, Performances, Workloads, Problems]
+  - required: [Problems_from_file, Solutions]

@@ -1,0 +1,76 @@
+Limiting_sets:
+  - &Cloud1
+    id: Cloud1
+    name: Cloud1
+    max_vms: 1
+    max_cores: 0
+  - &CloudR
+    id: CloudR
+    name: CloudR
+    max_vms: 1
+    max_cores: 4
+
+Instance_classes:
+  - &m3large
+    id: m3large
+    name: m3large
+    limiting_sets: [*Cloud1]
+    max_vms: 0
+    price: 10
+    is_reserved: False
+    cores: 1
+  - &m3large_r
+    id: m3large_r
+    name: m3large_r
+    limiting_sets: [*CloudR]
+    max_vms: 20
+    price: 7
+    is_reserved: True
+    cores: 1
+
+Apps:
+  - &app0
+    id: app0
+    name: Test app0
+  - &app1
+    id: app1
+    name: Test app1
+
+Workloads:
+  - &wl_app0
+    id: wl_app0
+    description: Test
+    values: [30, 32, 30, 30]
+    app: *app0
+    intra_slot_distribution: uniform
+  - &wl_app1
+    id: wl_app1
+    description: Test
+    values: [1003, 1200, 1194, 1003]
+    app: *app1
+    intra_slot_distribution: uniform
+
+Performances:
+  - &test_perfs
+    id: test_perfs
+    values:
+      - instance_class: *m3large
+        app: *app0
+        value: 10
+      - instance_class: *m3large
+        app: *app1
+        value: 500
+      - instance_class: *m3large_r
+        app: *app0
+        value: 10
+      - instance_class: *m3large_r
+        app: *app1
+        value: 500
+Problems:
+  - &phaseI
+    id: phaseI
+    name: Test problem
+    workloads: [*wl_app0, *wl_app1]
+    instance_classes: [*m3large, *m3large_r]
+    performances: *test_perfs
+    description: Nondescript
