@@ -448,8 +448,8 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         # When aborted, the optimal cost is not found
         assert solution.solving_stats.optimal_cost is None
         # But malloovia can give a lower bound
-        # (we know that this problem has an optimal solution of 11640.0)
-        assert solution.solving_stats.algorithm.lower_bound < 11640.0
+        # (we know that this problem has an optimal solution of 11610.0)
+        assert solution.solving_stats.algorithm.lower_bound <= 11610.0
 
     def test_unknown_error_in_pulp(self):
         """Load any problem and mock pulp so that it raises PulpError, to test

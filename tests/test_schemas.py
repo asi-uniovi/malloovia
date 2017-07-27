@@ -22,10 +22,6 @@ class TestValidateSchemas(PresetDataPaths):
         schema = yaml.safe_load(open(self.get_schema("problem.schema.yaml")))
         Draft4Validator.check_schema(schema)
 
-    def test_validate_solution_schema_against_meta_schema(self):
-        """Validates solution.schema"""
-        schema = yaml.safe_load(open(self.get_schema("solution.schema.yaml")))
-        Draft4Validator.check_schema(schema)
 
 
 class TestValidateExamples(PresetDataPaths):

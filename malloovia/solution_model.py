@@ -181,7 +181,6 @@ AllocationInfo.workload_tuples.__doc__ = """\
 SolutionI = _namedtuple_with_defaults(
     "SolutionI",
     ["id", "problem", "solving_stats", "allocation", "reserved_allocation"],
-    phase=1
 )
 """Stores a solution for phase I."""
 SolutionI.id.__doc__ = "str: arbitrary id for this object."
@@ -198,7 +197,6 @@ SolutionII = _namedtuple_with_defaults(
     "SolutionII",
     ["id", "problem", "solving_stats", "global_solving_stats",
      "previous_phase", "allocation"],
-    phase=2
 )
 """Stores a solution for phase II."""
 SolutionII.id.__doc__ = "str: arbitrary id for this object."

@@ -138,7 +138,6 @@ definitions:
   global_solving_stats:
     type: object
     properties:
-      default_algorithm: { $ref: "#/definitions/algorithm_used" }
       creation_time: { $ref: "#/definitions/nonNegative" }
       solving_time: { $ref: "#/definitions/nonNegative" }
       optimal_cost: { type: number }
@@ -223,7 +222,6 @@ definitions:
     type: object
     properties:
       id: {type: string}
-      phase: {$ref: "#/definitions/positiveInteger"}
       problem: {$ref: "#/definitions/Problem"}
       solving_stats: {$ref: "#/definitions/solving_stats"}
       reserved_allocation: {$ref: "#/definitions/reserved_allocation"}
@@ -234,7 +232,6 @@ definitions:
   phase_II_solution:
     type: object
     properties:
-      phase: {$ref: "#/definitions/positiveInteger"}
       id: {type: string}
       problem: {$ref: "#/definitions/Problem"}
       previous_phase: {$ref: "#/definitions/phase_I_solution"}

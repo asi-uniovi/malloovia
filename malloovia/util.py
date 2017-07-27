@@ -404,7 +404,6 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines.extend((
             "- &{}".format(sol.id),
             "  id: {}".format(sol.id),
-            "  phase: {}".format(sol.phase),
             "  problem: *{}".format(sol.problem.id),
         ))
         lines.append("  solving_stats:")
@@ -421,7 +420,6 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines.extend((
             "- &{}".format(sol.id),
             "  id: {}".format(sol.id),
-            "  phase: {}".format(sol.phase),
             "  problem: *{}".format(sol.problem.id),
             "  previous_phase: *{}".format(sol.previous_phase.id),
         ))
@@ -513,14 +511,14 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     # Now convert each solution
     lines.append("Solutions:")
     for solution in solutions:
-        if solution.phase == 1:
+        if isinstance(solution, SolutionI):
             lines.extend(solution_i_to_yaml(solution))
-        elif solution.phase == 2:
+        elif isinstance(solution, SolutionII):
             lines.extend(solution_ii_to_yaml(solution))
         else:
             raise ValueError(
-                "Solution({}) has phase field equal to {}"
-                .format(solution.id, solution.phase)
+                "Solution({}) is of unknown type {}"
+                .format(solution.id, type(solution))
                 )
     return "\n".join(lines)
 

@@ -111,7 +111,6 @@ Problems:
 
 Solutions:
 - &solution_phase_I
-  phase: 1
   id: solution_phase_I
   problem: *phaseI
   solving_stats:
@@ -135,7 +134,6 @@ Solutions:
     vms_number: [20]
 
 - &solution_phase_II
-  phase: 2
   id: solution_phase_II
   problem: *phaseII
   previous_phase: *solution_phase_I
@@ -176,12 +174,6 @@ Solutions:
           lower_bound: null
 
   global_solving_stats:
-    default_algorithm:
-      malloovia:
-        gcd: False
-        frac_gap: 0.01
-        max_seconds: 300
-        status: optimal
     creation_time: 200
     solving_time: 300
     optimal_cost: 123.1
