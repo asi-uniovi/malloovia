@@ -5,6 +5,7 @@
 
 from setuptools import setup, find_packages
 from glob import glob
+import os
 
 with open('README.rst') as readme_file:
     readme = readme_file.read()
@@ -38,11 +39,14 @@ data_files = [
         ('example_problems', glob("tests/test_data/problems/*"))
         ]
 
-import malloovia
+here = os.path.abspath(os.path.dirname(__file__))
+about = {}
+with open(os.path.join(here, 'malloovia', '__version__.py'), 'r') as f:
+    exec(f.read(), about)
 
 setup(
     name='malloovia',
-    version=malloovia.__version__,
+    version=about['__version__'],
     description="Use linear programming to allocate applications to cloud infrastructure",
     long_description=readme + '\n\n' + history,
     author="ASI Uniovi",

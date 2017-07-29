@@ -1,6 +1,5 @@
 
-__version__ = '0.2.1'
-
+from .__version__ import __version__
 from .model import *
 from .lpsolver import *
 from .solution_model import *
