@@ -498,7 +498,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
             "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(alloc.instance_classes)),
             "{}apps: [{}]".format(tab, list_of_references_to_yaml(alloc.apps)),
             "{}workload_tuples: [{}]".format(tab, list_to_yaml(list(wl) for wl in alloc.workload_tuples)),
-            # "{}repeats: [{}]".format(tab, list_to_yaml(alloc.repeats)),
+            "{}repeats: [{}]".format(tab, list_to_yaml(alloc.repeats)),
             "{}vms_number:".format(tab),
         ))
         for i, t_alloc in enumerate(alloc.values):
@@ -565,7 +565,125 @@ def _dict_to_yaml(data, level):
     return lines
 
 
+def get_schema() -> Mapping[str, Any]:
+    """Returns Malloovia's json schema which can be used to validate the
+    problem and solution files"""
+
+    path_to_schema = os.path.join(os.path.dirname(__file__),
+                                  "malloovia.schema.yaml")
+    with open(path_to_schema) as schema_file:
+        schema = yaml.safe_load(schema_file)
+    return schema
+
+def allocation_info_as_dicts(alloc: AllocationInfo,
+                        use_ids=True,
+                        include_timeslot=True,
+                        include_workloads=True,
+                        include_repeats=True) -> Sequence[Mapping[Any,Any]]:
+    """Converts the :class:`AllocationInfo` structure to a sequence of dicts, which
+    are more convenient for analysis with pandas. Each element of the returned
+    sequence is a python dictionary whose keys and values are:
+
+        * "instance_class" -> either the id or the reference to an instance class
+        * "app" -> either the id or the reference to an app
+        * "timeslot" -> the integer which represent the timeslot for this particular allocation
+        * "workload" -> a tuple with the workload to be fulfilled by this particular allocation
+        * "repeats" -> the number of times this workload appears in phaseI (always 1 for phase II)
+        * AllocationInfo.units -> value for this particular allocation. If the units is "vms",
+          the value represents the number of VMs of the kind "instance_class" to be activated
+          during timeslot "timeslot" (in phase II), or when the workload is "workload" (in
+          phase I), for the appplication "app".
+
+    Some of these fields are useful only for Phase I, while others are for Phase II. Some
+    boolean arguments allows the selection of these specific fields.
+
+    Args:
+        alloc: The :class:`AllocationInfo` to convert
+        use_ids: True to use the ids of instance classes and apps, instead of the objects
+           which store those entities. False to use references to instance classes and apps
+           instead of the ids. The ids version produces a more compact representation when
+           used with pandas.
+        include_timeslot: False if you don't want the "timeslot" field (it conveys no meaning
+            for Phase I allocations)
+        include_workloads: False if you don't want the "workload" field
+        include_repeats: False if you don't want the "repeats" field (it is always 1 for
+            Phase II allocations)
+
+    Returns:
+        A generator for sequence of dictionaries with the required fields. You can iterate
+        over the generator, or pass it directly to pandas DataFrame constructor.
+
+    Example:
+
+        >>> import pandas as pd
+        >>> df = (pd.DataFrame(
+                allocation_info_as_dicts(
+                    alloc = phase_i_solution.allocation,
+                    use_ids=True,
+                    include_repeats=True,
+                    include_workloads=True,
+                    include_timeslot=False))
+                .set_index(["repeats", "workload", "app", "instance_class"])
+                .unstack()
+            )
+        >>> df
+                                      vms
+        instance_class            m3large   m3large_r
+        repeats workload    app
+        1       (30, 1194)  app0     0.0       3.0
+                            app1     0.0       3.0
+                (32, 1200)  app0     1.0       3.0
+                            app1     0.0       3.0
+        2       (30, 1003)  app0     0.0       3.0
+                            app1     0.0       3.0
+        >>> df2 = (pd.DataFrame(
+                allocation_info_as_dicts(
+                    alloc = phase_ii_solution.allocation,
+                    use_ids=True,
+                    include_repeats=False,
+                    include_workloads=True,
+                    include_timeslot=True))
+                .set_index(["timeslot", "workload", "app", "instance_class"])
+                .unstack()
+            )
+        >>> df
+                                     vms
+        instance_class           m3large   m3large_r
+        timeslot workload   app
+        0        (30, 1003) app0     0.0       3.0
+                            app1     0.0       3.0
+        1        (32, 1200) app0     1.0       3.0
+                            app1     0.0       3.0
+        2        (30, 1194) app0     0.0       3.0
+                            app1     0.0       3.0
+        3        (30, 1003) app0     0.0       3.0
+                            app1     0.0       3.0
+    """
+
+    def _repr(element):
+        if use_ids:
+            return element.id
+        else:
+            return element
+
+    for t, t_alloc in enumerate(alloc.values):
+        for app, a_alloc in enumerate(t_alloc):
+            for i, ic_alloc in enumerate(a_alloc):
+                result = {}
+                result["instance_class"] = _repr(alloc.instance_classes[i])
+                result["app"] = _repr(alloc.apps[app])
+                result[alloc.units] = ic_alloc
+                if include_workloads:
+                    result["workload"] = alloc.workload_tuples[t]
+                if include_timeslot:
+                    result["timeslot"] = t
+                if include_repeats:
+                    result["repeats"] = alloc.repeats[t]
+                yield result
+
+
 __all__ = [
     'read_problems_from_yaml', 'read_problems_from_github',
-    'problems_to_yaml', 'solutions_to_yaml'
+    'problems_to_yaml', 'solutions_to_yaml', 'get_schema',
+    'allocation_info_as_dicts'
 ]

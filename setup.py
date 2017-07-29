@@ -16,7 +16,8 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'pyyaml',
     'jsonschema',
-    'pulp'
+    'pulp',
+    'click'
 ]
 
 setup_requirements = [
@@ -29,9 +30,9 @@ test_requirements = [
 
 package_data = {
         "samples": [
-            'tests/test_data/problems/problem1.yaml', 
-            'tests/test_data/problems/problem2.yaml', 
-            'tests/test_data/problems/problem3.yaml', 
+            'tests/test_data/problems/problem1.yaml',
+            'tests/test_data/problems/problem2.yaml',
+            'tests/test_data/problems/problem3.yaml',
             ]
         }
 
@@ -69,4 +70,8 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     setup_requires=setup_requirements,
+    entry_points='''
+        [console_scripts]
+        malloovia=malloovia.cli:cli
+    '''
 )

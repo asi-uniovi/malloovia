@@ -12,7 +12,7 @@ from .datapaths import PresetDataPaths
 
 class TestUtilModule(PresetDataPaths):
     def test_yaml_back_and_forth_is_the_same(self):
-        """Test the writer for the advanced yaml format, by reading it back"""
+        """Test the writer for the problem yaml format, by reading it back"""
         # Read one example problem with YAML and get all the info as nested python dicts
         filename = self.get_valid("problem_example.yaml")
         with open(filename) as f:
