@@ -25,6 +25,7 @@ sys.path.insert(0,
 )
 
 import malloovia  # To get the version
+from malloovia import * # To get the high level api
 
 # -- General configuration ------------------------------------------------
 
@@ -100,7 +101,7 @@ html_theme = 'alabaster'
 # documentation.
 #
 html_theme_options = {
-        'page_width': "1000px",
+        'page_width': "1008px",
         'logo': 'malloovia_logo.png',
         'logo_name': True,
         'description': 'Use linear programming to allocate applications to cloud infrastructure',
@@ -115,7 +116,10 @@ html_favicon = "_static/malloovia.ico"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
-
+# html_sidebars = {
+#         '**': ['globaltoc.html', 'relations.html',
+#                'sourcelink.html', 'searchbox.html', 'better.html']
+#         }
 
 # -- Options for HTMLHelp output ------------------------------------------
 

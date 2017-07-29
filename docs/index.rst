@@ -51,9 +51,10 @@ See :ref:`usage` for details about the high-level Malloovia API, and :ref:`Docum
    :maxdepth: 2
    :caption: Contents:
 
-   background
    install
+   background
    usage
+   api
    developers
    contributing
    authors

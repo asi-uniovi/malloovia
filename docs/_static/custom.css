@@ -1,0 +1,31 @@
+.toggle .header {
+    display: block;
+    clear: both;
+    background-color: #eef;
+    margin-bottom: 0pt;
+    padding-bottom: 0pt;
+    cursor: pointer;
+}
+
+.toggle .header:after {
+    content: " ▼";
+}
+
+.toggle .header.open:after {
+    content: " ▲";
+}
+
+div.document {width: 1008px;}
+
+/* Much-improved spacing around code blocks. */
+div.highlight pre {padding: 11px 14px;}
+
+/*
+// Remain Responsive!
+@media screen and (max-width: 1008px) {
+	div.sphinxsidebar {display: none;}
+	div.document {width: 100%!important;}
+	// Have code blocks escape the document right-margin
+	div.highlight pre {margin-right: -30px;}
+}
+*/
