@@ -2,7 +2,7 @@
 from typing import (Tuple, Any, Sequence)
 import time
 from collections import OrderedDict
-from pulp import (PulpSolverError, COIN)
+from pulp import (PulpSolverError)
 
 from .lpsolver import (
     Malloovia,
@@ -153,10 +153,7 @@ class PhaseII:
         """
         self.problem = problem
         self.phase_i_solution = phase_i_solution
-        if solver is None:
-            self.solver = COIN(msg=1)
-        else:
-            self.solver = solver
+        self.solver = solver
         self.reuse_rsv = reuse_rsv
 
         # Hash with the already computed solutions for each workload level
@@ -395,9 +392,11 @@ def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float,
 
     # Prepare solver
     if solver is None:
-        solver = COIN(msg=1)
-    frac_gap = solver.fracGap
-    max_seconds = solver.maxSeconds
+        frac_gap = None
+        max_seconds = None
+    else:
+        frac_gap = solver.fracGap
+        max_seconds = solver.maxSeconds
 
     # Solve the problem and measure the time required
     start = time.perf_counter()

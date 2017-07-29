@@ -38,9 +38,11 @@ data_files = [
         ('example_problems', glob("tests/test_data/problems/*"))
         ]
 
+import malloovia
+
 setup(
     name='malloovia',
-    version='0.1.0',
+    version=malloovia.__version__,
     description="Use linear programming to allocate applications to cloud infrastructure",
     long_description=readme + '\n\n' + history,
     author="ASI Uniovi",
