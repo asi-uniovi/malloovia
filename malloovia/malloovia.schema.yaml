@@ -279,9 +279,7 @@ properties:
 
   Solutions:
     type: array
-    items: 
-    - {$ref: "#/definitions/phase_I_solution"}
-    - {$ref: "#/definitions/phase_II_solution"}
+    items: {$ref: "#/definitions/Solution"}
 
 oneOf:
   - required: [Apps, Limiting_sets, Instance_classes, Performances, Workloads, Problems]
