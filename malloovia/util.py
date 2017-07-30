@@ -2,8 +2,13 @@
 
 from typing import (Mapping, Sequence, Tuple, Union, Any, List)
 import os.path
+import gzip
 import urllib.request
 import yaml
+# To use ruamel.yaml instead of pyyaml:
+# from ruamel.yaml import YAML
+# yaml = YAML(typ='safe')
+# yaml.safe_load = yaml.load
 
 from .model import (
     App, LimitingSet, InstanceClass,
@@ -19,12 +24,23 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     """Reads the problem(s) definition from a YAML file.
 
     Args:
-       filename: name of the YAML file to read.
+       filename: name of the YAML file to read, it has to have the extension
+          ``.yaml`` or ``.yaml.gz`` (which is automatically decompressed on read).
 
     Returns:
         A dictionary whose keys are problem ids, and the values are :class:`Problem` objects.
+
+    Raises:
+        ValueError if the file has not the expected extension.
     """
-    with open(filename) as stream:
+    if filename.endswith(".yaml.gz"):
+        _open = gzip.open
+    elif filename.endswith(".yaml"):
+        _open = open
+    else:
+        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
+
+    with _open(filename) as stream:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
@@ -479,9 +495,15 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
                                     level: int) -> List[str]:
         lines = []
         tab = "  "*level
+        if rsv is None:
+            instance_classes = []
+            vms_number = []
+        else:
+            instance_classes = rsv.instance_classes
+            vms_number = rsv.vms_number
         lines.extend((
-            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(rsv.instance_classes)),
-            "{}vms_number: [{}]".format(tab, ", ".join(str(v) for v in rsv.vms_number)),
+            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(instance_classes)),
+            "{}vms_number: [{}]".format(tab, ", ".join(str(v) for v in vms_number)),
         ))
         return lines
 
@@ -494,19 +516,34 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     def allocation_to_yaml(alloc: AllocationInfo, level: int) -> List[str]:
         lines = []
         tab = "  "*level
+        if alloc is None:
+            instance_classes = []
+            workload_tuples = []
+            apps = []
+            repeats = []
+            values = []
+        else:
+            instance_classes = alloc.instance_classes
+            workload_tuples = alloc.workload_tuples
+            apps = alloc.apps
+            repeats = alloc.repeats
+            values = alloc.values
         lines.extend((
-            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(alloc.instance_classes)),
-            "{}apps: [{}]".format(tab, list_of_references_to_yaml(alloc.apps)),
-            "{}workload_tuples: [{}]".format(tab, list_to_yaml(list(wl) for wl in alloc.workload_tuples)),
-            "{}repeats: [{}]".format(tab, list_to_yaml(alloc.repeats)),
-            "{}vms_number:".format(tab),
+            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(instance_classes)),
+            "{}apps: [{}]".format(tab, list_of_references_to_yaml(apps)),
+            "{}workload_tuples: [{}]".format(tab, list_to_yaml(list(wl) for wl in workload_tuples)),
+            "{}repeats: [{}]".format(tab, list_to_yaml(repeats)),
         ))
-        for i, t_alloc in enumerate(alloc.values):
-            lines.append("  {}- # {} -> {}".format(
-                tab, i, alloc.workload_tuples[i]
-            ))
-            for app_alloc in t_alloc:
-                lines.append("    {}- [{}]".format(tab, app_alloc))
+        if values:
+            lines.append("{}vms_number:".format(tab))
+            for i, t_alloc in enumerate(values):
+                lines.append("  {}- # {} -> {}".format(
+                    tab, i, workload_tuples[i]
+                ))
+                for app_alloc in t_alloc:
+                    lines.append("    {}- [{}]".format(tab, app_alloc))
+        else:
+            lines.append("{}vms_number: []".format(tab))
         return lines
 
 

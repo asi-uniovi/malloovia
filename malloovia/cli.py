@@ -1,12 +1,19 @@
 #!/usr/bin/env python
-"""Script to validate the syntax of a YAML file"""
+"""Command line interface to Malloovia."""
+import time
 import yaml
-from jsonschema import (validate, Draft4Validator, exceptions)
+from jsonschema import validate
+import click
+from pulp import COIN
+
 from . import __version__
 from .util import (
-    get_schema, preprocess_yaml
+    get_schema, preprocess_yaml, read_problems_from_yaml,
+    solutions_to_yaml
 )
-import click
+from .phases import (
+    PhaseI, PhaseII
+)
 
 def validate_yaml_file(filename, partial=False, kind=None):
     """Validates yaml problem or solution against malloovia schema.
@@ -50,23 +57,27 @@ def cli():
     '--problems-only', is_flag=True, default=False, show_default=True,
     help='The file contains only problems'
 )
+@click.option(
+    '--verbose', is_flag=True, default=False, show_default=True,
+    help='Show the full exception message on failure'
+)
 @click.argument(
     'filenames', type=click.Path(exists=True), nargs=-1, required=True
 )
-def validate_multiple_yaml_files(filenames, partial, problems_only):
+def validate_multiple_yaml_files(filenames, partial, problems_only, verbose):
     "Validates yaml files"
     if problems_only:
-        kind="problems"
+        kind = "problems"
     else:
-        kind=None
+        kind = None
     for filename in filenames:
         try:
             validate_yaml_file(filename, partial, kind)
-        except Exception as e:
-            if hasattr(e, "message"):
-                msg = e.message
+        except Exception as excep:
+            if not verbose and hasattr(excep, "message"):
+                msg = excep.message
             else:
-                msg = str(e)
+                msg = str(excep)
             click.secho("{} does not validate ({})".format(filename, msg),
                         fg="red")
         else:
@@ -74,22 +85,49 @@ def validate_multiple_yaml_files(filenames, partial, problems_only):
                         fg="green")
 
 
-@cli.command("solve")
+@cli.command("phase_i")
 @click.argument(
     'problems_file', type=click.Path(exists=True), nargs=1)
 @click.argument(
     'problem_id', type=str)
+@click.argument(
+    'output_file', type=click.File("w"), nargs=1)
 @click.option(
-    '--phase-i-only', is_flag=True, default=False
+    '--frac-gap', type=float, default=None,
+    help="Use cbc solver with given fracGap"
 )
-def solve_problem(problems_file, problem_id, phase_i_only):
-    "Solves problems"
-    click.echo("Not implemented yet!")
+@click.option(
+    '--max-seconds', type=float, default=None,
+    help="Use cbc solver with given maxSeconds"
+)
+@click.option(
+    '--threads', type=int, default=None,
+    help="Use cbc solver with given number of threads"
+)
+def solve_phase_i(problems_file, problem_id, output_file, frac_gap,
+                  max_seconds, threads):
+    "Solves phase I of a given problem"
 
+    click.echo("Reading {}...".format(problems_file), nl=False)
+    t_ini = time.process_time()
+    problem = read_problems_from_yaml(problems_file)[problem_id]
+    click.echo("({}s)".format(time.process_time()-t_ini))
 
+    if any(option is not None for option in (frac_gap, max_seconds, threads)):
+        solver = COIN(fracGap=frac_gap, maxSeconds=max_seconds, threads=threads)
+    else:
+        solver = None
 
+    click.echo("Solving phase I...", nl=False)
+    t_ini = time.process_time()
+    solution = PhaseI(problem).solve(solver=solver)
+    click.echo("({}s)".format(time.process_time()-t_ini))
 
-
+    click.echo("Writing solution in {}...".format(output_file.name), nl=False)
+    t_ini = time.process_time()
+    output = solutions_to_yaml([solution])
+    output_file.write(output)
+    click.echo("({}s)".format(time.process_time()-t_ini))
 
 if __name__ == "__main__":
     cli()
