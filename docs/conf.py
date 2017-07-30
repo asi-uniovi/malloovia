@@ -39,9 +39,11 @@ from malloovia import * # To get the high level api
 extensions = ['sphinx.ext.autodoc', 
               'sphinxcontrib.napoleon',
               'sphinx_autodoc_typehints',
-              'sphinx.ext.todo',
+              'sphinx.ext.doctest',
               'sphinx.ext.viewcode']
 autoclass_content = 'both'
+doctest_test_doctest_blocks = ''
+doctest_global_setup = "from malloovia import *"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -93,29 +95,34 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
-# html_theme = 'classic'
 
-# Theme options are theme-specific and customize the look and feel of a theme
-# further.  For a list of options available for each theme, see the
-# documentation.
-#
+html_theme = 'alabaster'
+
 html_theme_options = {
         'page_width': "1008px",
         'logo': 'malloovia_logo.png',
         'logo_name': True,
         'description': 'Use linear programming to allocate applications to cloud infrastructure',
         'fixed_sidebar': True,
-        'show_related': True,
+        'show_related': False,
         'show_powered_by': False,
+        'sidebar_collapse': True,
+        # 'github_user': 'asi-uniovi',
+        # 'github_repo': 'malloovia',
+        # 'travis_button': True,
         }
-html_logo = "_static/malloovia_logo.png"
+html_sidebars = {
+    '**': [
+        'about.html',
+        'navigation.html',
+        'relations.html',
+        'searchbox.html',
+    ]
+}
+
+html_static_path = ['_static']
 html_favicon = "_static/malloovia.ico"
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
 # html_sidebars = {
 #         '**': ['globaltoc.html', 'relations.html',
 #                'sourcelink.html', 'searchbox.html', 'better.html']

@@ -18,18 +18,20 @@ The data about the cloud infrastructure is stored in different entities:
   reserved (prepaid for a whole reservation period) or on-demand (pay-per-use).
 
 
-Example::
+Example:
 
-    >>> region1 = LimitingSet("region1", name="us.east", max_vms=20)
-    >>> zone1 =  LimitingSet("region1_z1", name="us.east_a", max_vms=20)
-    >>> m3large_z1 = InstanceClass(
-            "m3large_z1", name="reserved m3.large in us.east_a",
-            limiting_sets=(zone1,), is_reserved=True,
-            price=7, max_vms=20)
-    >>> m4xlarge_r1 = InstanceClass(
-            "m4xlarge_r1", name="ondemand m4.xlarge in us.east",
-            limiting_sets=(region1,), is_reserved=False,
-            price=10, max_vms=10)
+.. testcode::
+
+    region1 = LimitingSet("region1", name="us.east", max_vms=20)
+    zone1 =  LimitingSet("region1_z1", name="us.east_a", max_vms=20)
+    m3large_z1 = InstanceClass(
+        "m3large_z1", name="reserved m3.large in us.east_a",
+        limiting_sets=(zone1,), is_reserved=True,
+        price=7, max_vms=20)
+    m4xlarge_r1 = InstanceClass(
+        "m4xlarge_r1", name="ondemand m4.xlarge in us.east",
+        limiting_sets=(region1,), is_reserved=False,
+        price=10, max_vms=10)
 
 .. container:: toggle
 

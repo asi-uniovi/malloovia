@@ -26,7 +26,7 @@ Release v\ |version|. (:ref:`Installation <install>`)
 
 Use linear programming to allocate applications to cloud infrastructure.
 
-::
+.. doctest::
 
         >>> from malloovia import *
         >>> problem = read_problems_from_github(dataset="problem1", id="example")
@@ -49,7 +49,7 @@ See :ref:`usage` for details about the high-level Malloovia API, and :ref:`Docum
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
    install
    background

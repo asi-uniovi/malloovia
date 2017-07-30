@@ -29,24 +29,31 @@ In order to solve the problem, a great deal of prior information has to be colle
 
 Cloud providers impose limits on the resources that one user can use in each timeslot, but the kind of limits imposed by each provider is different. For example, Azure imposes a limit on the number of CPU cores that can be running during the timeslot, while Amazon imposes limits on the number of VMs of each type inside each region, the total number of on-demand VMs of any type which can be running in the same region, or the total number of resreved VMs of any type which can be running in the same availability zone (one region can contain several availability zones).
 
-To be able to model such a diversity, malloovia introduces the concept of "Instance classes" and "Limiting sets".
+To be able to model such a diversity, malloovia introduces the concept of "Instance classes" and "Limiting sets". In addition to this "infrastructure description", Malloovia also needs to know the expected workload for each app, and the performance of each app in each instance class.
 
-One "Instance class" is a particular type of VM running inside a particular region or availability zone. For example, one of Amazon's region is called ``us.east``, and it contains several availabilty zones called ``us.east_a``, ``us.east_b`` and so on. In all of these availabilty zones it offers the same set of VM types, for example ``m4.large``, ``m4.xlarge``, ``t2.nano``, etc. Let's consider for example the type ``m4.large``. For Amazon it is a single "VM type", but for Mallovia it is a whole set of "Instance classes", depending the region and zone in which it is deployed. So, a single VM type generates a number of instance classes. It can be called for example ``m4.large_us.east``, ``m4.large_us.east_a``, ``m4.large_us.east_b`` and so on.
+*Instance classes*
+  One "Instance class" is a particular type of VM running inside a particular region or availability zone. For example, one of Amazon's region is called ``us.east``, and it contains several availabilty zones called ``us.east_a``, ``us.east_b`` and so on. In all of these availabilty zones it offers the same set of VM types, for example ``m4.large``, ``m4.xlarge``, ``t2.nano``, etc. Let's consider for example the type ``m4.large``. For Amazon it is a single "VM type", but for Mallovia it is a whole set of "Instance classes", depending the region and zone in which it is deployed. So, a single VM type generates a number of instance classes. It can be called for example ``m4.large_us.east``, ``m4.large_us.east_a``, ``m4.large_us.east_b`` and so on.
 
-Each instance class is described by several parameters: the number of cores it has, the price, the VM type, the limit on the number of VMs of that type allowed inside its region/zone, etc. Some of these parameters are identical for all instance classes originated from the same VM type, but not all of them. For example, the price and limits can be different in different regions.
+  Each instance class is described by several parameters: the number of cores it has, the price, the VM type, the limit on the number of VMs of that type allowed inside its region/zone, etc. Some of these parameters are identical for all instance classes originated from the same VM type, but not all of them. For example, the price and limits can be different in different regions.
 
-A "Limiting set" is a conceptual construct which allows Malloovia to group different instance classes which share some kind of limit. For example, Amazon imposes a limit on the total number of on-demand VMs wich can be running inside a region. Malloovia model this by creating a Limiting set which represents that region and putting all on-demand instance classes which share the region in that limiting set.
+*Limiting sets*
+  A "Limiting set" is a conceptual construct loosely related to regions and availability zones. It allows Malloovia to group different instance classes which share some kind of limit. For example, Amazon imposes a limit on the total number of on-demand VMs wich can be running inside a region. Malloovia model this by creating a Limiting set which represents that region and putting all on-demand instance classes which share the region in that limiting set.
 
-Each Limiting set contains two kinds of limits: on the total number of VMs in that set, and on the total number of cores running in that set. If one of the limits is set to 0, it means "no limit". This way, this model can be used both for Amazon and Azure.
+  Each Limiting set contains two kinds of limits: on the total number of VMs in that set, and on the total number of cores running in that set. If one of the limits is set to 0, it means "no limit". This way, this model can be used both for Amazon and Azure.
 
-In addition to this "infrasctructure description", Malloovia also needs to know the expected workload for each app, and the performance of each app in each instance class. The performance is considerered independent on the workload, and dependent only on the instance class in which the app runs. Then, to capture this information, a table with the peformance for each pair (app, instance classes) is enough.
+*Workload predictions*
+  Each application has one expected workload, which is a sequence of numbers, one per timeslot, in the same units than the performances. Malloovia does not provide any mean to obtain this prediction. Instead, it expects it as part of the problem definition.
 
-The combination of the infrastructure description given by "Instance Classes" and "Limiting sets" plus the performance information is what we will call the "System description". The problem to solve by malloovia is, given a System Description and a Workload Prediction, to find out the allocation of applications to instance classes for each timeslot which minimizes the cost.
+*Performancess*
+   The performance of the app is considerered independent on the workload, and dependent only on the instance class in which the app runs. Each instance class is able to sustain a number of requests per hour when running one particular app. Then, to capture this information, a table with the peformance for each pair (app, instance classes) is enough.
 
-The expected workload of each app is stored as a sequence of numbers (one per timeslot) for application.
+The combination of the infrastructure description given by *Instance classes* and *Limiting sets*, plus the *Performances* information is what we will call the "System description". The problem to solve by Malloovia is, given a System Description and a Workload Prediction, to find out the allocation of applications to instance classes for each timeslot which minimizes the cost, fulfills the workload, and respects the provider limits.
 
-The solving method
+
+The solver
 ------------------
+
+The above information is used by Malloovia to build a linear programming problem, writing it on disk, and calling an external tool (by default COIN-OR cbc) to solve it. The solution given by the solver is read back into python structures and returned by Malloovia.
 
 Malloovia operates in two phases.
 
@@ -58,13 +65,13 @@ Malloovia operates in two phases.
 
     Depending on the value of the workload prediction for the next timeslot, we are in one of the following cases:
 
-    * STWP for each app forms a tuple which was "already seen". This means that the optimal solution for that case is known and it can be simply reused.
-    * Otherwise an optimization problem is created for the next timeslot. The result is an optimal allocation which minimizes the cost for the next timeslot, by reusing the reserved instances to fullfill the predicted workload, instantiating on-demand VMs if it is neccessary.
-    * It can be the case that the predicted workload exceeds any value considered in Phase I. In this case, it is possible that the problem is infeasible, because it will require to hire a number of on-demand VMs which will violate the provider limits. If this happens, it will be impossible to achieve the performance required to fulfill the workload. In this case Malloovia changes the strategy and solves an optimization problem which tries to maximize the percentage of workload served for each app.
+    * The STWP for the next timeslot was "already seen". This means that the optimal solution for that case is known and it can be simply reused.
+    * Otherwise an optimization problem is created for the next timeslot. The result is an optimal allocation which minimizes the cost for the next timeslot, by reusing the reserved instances to fulfill the STWP, instantiating on-demand VMs if neccessary.
+    * It can be the case that the predicted workload exceeds any value considered in Phase I. In this case the problem could be infeasible, because it could require to hire a number of on-demand VMs which would violate the provider limits. If this happens, it will be impossible to achieve the performance required to fulfill the workload. Malloovia detects this case and changes the strategy for that timeslot only, solving an optimization problem which tries to maximize the percentage of workload served for each app.
 
     In any case, a new allocation is obtained at this phase, which is used to allocate VMs for the next timeslot.
 
-Although Phase II should happen in real-time (e.g: being executed each hour, during a year), Malloovia allows also for a "simulation" of this Phase, in which the STWP for each timeslot is provided in a list, and then PhaseII is executed for each element of that list, and the optimal solution for each timeslot is stored, and global statistics are provided once the list is exhausted.
+Although Phase II should happen in real-time (e.g: being executed each hour, during a year), Malloovia allows also for a "simulation" of this phase, in which the STWP for each timeslot is provided in a list, and then Phase II is executed for each element of that list, and the optimal allocation for each timeslot is stored, and global statistics are provided once the list is exhausted.
 
 The solution
 ------------
@@ -73,7 +80,7 @@ The solution is delivered in a python object (which can also be exported into a 
 
 * Statistics about the solver (e.g.: the time required to find the solution, the values of some parameters that influence the accuracy of the solution, the optimality or infeasibility of the problem, etc.) This information is useful to the researcher, to compare Malloovia with other solving methots.
 
-* The optimal allocation, i.e.: the number of VMs of each type for each application. From this allocation, combined with the System description, it is possible to derive other information, such as the cost per timeslot, the cost per VM type, the cost per App, the performance met per app in each timeslot, etc.
+* The optimal allocation, i.e.: the number of VMs of each type for each application. From this allocation it is possible to derive other information, such as the cost per timeslot, the cost per VM type, the cost per App, the performance met per app in each timeslot, etc.
 
-In Phase I, the optimal allocation for each timeslot is usually discarded, because this allocation is only optimal if the LTWP were exacta, and it is assumed that it is not the case. So, the useful result of Phase I is the number of reserved instances of each type.
+In Phase I, the optimal allocation for each timeslot is usually discarded, because this allocation is only optimal if the LTWP were exact, and it is assumed that it is not the case. So, the useful result of Phase I is the number of reserved instances of each type to be used in Phase II.
 

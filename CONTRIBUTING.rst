@@ -65,9 +65,7 @@ Ready to contribute? Here's how to set up `malloovia` for local development.
 
     $ git clone git@github.com:your_name_here/malloovia.git
 
-3. Install your local copy into a virtualenv (see :ref:`installation document <install>` for
-instructions about how to create the virtual environment in your platform). Once the venv
-is activated::
+3. Install your local copy into a virtualenv (see :ref:`installation document <install>` for instructions about how to create the virtual environment in your platform). Once the venv is activated::
 
     (malloovia)$ cd malloovia/
     (malloovia)$ python setup.py develop

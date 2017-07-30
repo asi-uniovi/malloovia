@@ -15,7 +15,9 @@
     content: " ▲";
 }
 
+/*
 div.document {width: 1008px;}
+*/
 
 /* Much-improved spacing around code blocks. */
 div.highlight pre {padding: 11px 14px;}
