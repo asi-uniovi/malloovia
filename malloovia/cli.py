@@ -7,6 +7,7 @@ import ruamel.yaml
 from jsonschema import validate
 import click
 from pulp import COIN
+from progress.bar import ShadyBar
 
 from . import __version__
 from .util import (
@@ -14,12 +15,25 @@ from .util import (
     solutions_to_yaml
 )
 from .phases import (
-    PhaseI, PhaseII
+    PhaseI, PhaseII, OmniscentSTWPredictor
 )
 
 yaml = ruamel.yaml.YAML(typ='safe')
 yaml.safe_load = yaml.load
 
+
+class OmniscentProgressSTWPredictor(OmniscentSTWPredictor):
+    def __iter__(self):
+        bar = ShadyBar(
+            "Solving Phase II", max=self.timeslots/10, width=80,
+            suffix = '%(percent).1f%% - ETA: %(eta_td)s')
+        count = 0
+        for k in OmniscentSTWPredictor.__iter__(self):
+            yield k
+            count = (count + 1) % 10
+            if count == 0:
+                bar.next()
+        bar.finish()
 
 def validate_yaml_file(filename, partial=False, kind=None):
     """Validates yaml problem or solution against malloovia schema.
@@ -183,7 +197,8 @@ def solve(problems_file, phase_i_id, phase_ii_id,
             solver = None
         click.echo("Solving phase II...", nl=False)
         t_ini = time.process_time()
-        solution2 = PhaseII(prob2, solution1, solver=solver).solve_period()
+        progress_predictor = OmniscentProgressSTWPredictor(prob2.workloads)
+        solution2 = PhaseII(prob2, solution1, solver=solver).solve_period(progress_predictor)
         click.echo("({}s)".format(time.process_time()-t_ini))
         solutions.append(solution2)
 

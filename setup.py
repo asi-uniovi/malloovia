@@ -14,10 +14,11 @@ with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
 requirements = [
-    'pyyaml',
+    'ruamel.yaml',
     'jsonschema',
     'pulp',
-    'click'
+    'click',
+    'progress'
 ]
 
 setup_requirements = [
