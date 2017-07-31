@@ -95,8 +95,10 @@ class PhaseI:
 ###############################################################################
 # Phase II
 ###############################################################################
+class STWPredictor:
+    pass
 
-class Omniscent_STWP_Predictor:     # pylint: disable=invalid-name,too-few-public-methods
+class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
     """Concrete implementation of STWP_Predictor which knows in advance the STWP for
     all timeslot in the future.
 
@@ -246,8 +248,13 @@ class PhaseII:
 
         return self._solutions[workloads]
 
-    def solve_period(self) -> SolutionII:
+    def solve_period(self, predictor: STWPredictor = None) -> SolutionII:
         """Solves the complete reserved period by iteratively solving each timeslot.
+
+        Args:
+            predictor: a generator which yields one prediction tuple per timeslot.
+                If ``None``, a default :class:`OmniscentSTWPredictor` is instantiated
+                which iterates over the Problem.workloads values.
 
         Returns:
             The global solution for phase II, which contains the allocation for each
@@ -255,7 +262,8 @@ class PhaseII:
         """
 
         system = system_from_problem(self.problem)
-        predictor = Omniscent_STWP_Predictor(self.problem.workloads)
+        if predictor is None:
+            predictor = OmniscentSTWPredictor(self.problem.workloads)
         solutions = []
         for workloads in predictor:
             solutions.append(self.solve_timeslot(system, workloads))
@@ -426,4 +434,4 @@ def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float,
     return solving_time, malloovia_stats
 
 
-__all__ = ['PhaseI', 'PhaseII', 'Omniscent_STWP_Predictor']
+__all__ = ['PhaseI', 'PhaseII', 'STWPredictor', 'OmniscentSTWPredictor']

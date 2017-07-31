@@ -4,11 +4,10 @@ from typing import (Mapping, Sequence, Tuple, Union, Any, List)
 import os.path
 import gzip
 import urllib.request
-import yaml
 # To use ruamel.yaml instead of pyyaml:
-# from ruamel.yaml import YAML
-# yaml = YAML(typ='safe')
-# yaml.safe_load = yaml.load
+from ruamel.yaml import YAML
+yaml = YAML(typ='safe')
+yaml.safe_load = yaml.load
 
 from .model import (
     App, LimitingSet, InstanceClass,
@@ -40,7 +39,7 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     else:
         raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
 
-    with _open(filename) as stream:
+    with _open(filename, mode='rt', encoding="utf8") as stream:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
@@ -362,8 +361,15 @@ def preprocess_yaml(input_yaml_filename: str) -> str:
         in that section. This name is considered relative to the path of the main yaml file.
     """
 
+    if input_yaml_filename.endswith(".yaml.gz"):
+        _open = gzip.open
+    elif input_yaml_filename.endswith(".yaml"):
+        _open = open
+    else:
+        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
+
     output = []
-    with open(input_yaml_filename) as istream:
+    with _open(input_yaml_filename, mode='rt', encoding="utf8") as istream:
         for line in istream:
             if line.startswith("Problems_from_file"):
                 filename = line.split(":")[1].strip()
@@ -392,7 +398,11 @@ def read_file_relative_to(filename: str, relative_to:str) -> str:
     """
     path_to_input = os.path.abspath(relative_to)
     path_to_filename = os.path.join(os.path.dirname(path_to_input), filename)
-    return open(path_to_filename).read()
+    if filename.endswith(".gz"):
+        _open = gzip.open
+    else:
+        _open = open
+    return _open(path_to_filename, mode='rt', encoding="utf8").read()
 
 def read_from_relative_csv(filename: str, relative_to:str) -> Tuple[float]:
     """Reads and parses the content of one file, given its name considered relative to other filename.

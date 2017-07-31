@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Command line interface to Malloovia."""
 import time
-import yaml
+import traceback
+import os.path
+import ruamel.yaml
 from jsonschema import validate
 import click
 from pulp import COIN
@@ -14,6 +16,10 @@ from .util import (
 from .phases import (
     PhaseI, PhaseII
 )
+
+yaml = ruamel.yaml.YAML(typ='safe')
+yaml.safe_load = yaml.load
+
 
 def validate_yaml_file(filename, partial=False, kind=None):
     """Validates yaml problem or solution against malloovia schema.
@@ -58,7 +64,7 @@ def cli():
     help='The file contains only problems'
 )
 @click.option(
-    '--verbose', is_flag=True, default=False, show_default=True,
+    '--verbose', '-v', is_flag=True, default=False, show_default=True,
     help='Show the full exception message on failure'
 )
 @click.argument(
@@ -74,59 +80,123 @@ def validate_multiple_yaml_files(filenames, partial, problems_only, verbose):
         try:
             validate_yaml_file(filename, partial, kind)
         except Exception as excep:
-            if not verbose and hasattr(excep, "message"):
+            if hasattr(excep, "message"):
                 msg = excep.message
             else:
                 msg = str(excep)
-            click.secho("{} does not validate ({})".format(filename, msg),
-                        fg="red")
+            if verbose:
+                traceback.print_exc()
+            else:
+                click.secho("{} does not validate ({})".format(filename, msg),
+                            fg="red")
         else:
             click.secho("{} is correct".format(filename),
                         fg="green")
 
 
-@cli.command("phase_i")
+@cli.command("solve")
 @click.argument(
-    'problems_file', type=click.Path(exists=True), nargs=1)
-@click.argument(
-    'problem_id', type=str)
-@click.argument(
-    'output_file', type=click.File("w"), nargs=1)
+    'problems_file', type=click.Path(exists=True), nargs=1,
+# help='Name of the file containing the infrastructure and problems description'
+)
+@click.option(
+    '--phase-i-id', '-1', type=str, nargs=1,
+    help='Id of the problem to be solved by Phase I solver'
+)
+@click.option(
+    '--phase-ii-id', '-2', type=str,
+    help=('Id of the problem to be solved by Phase II solver, using reserved '
+          'allocation found by Phase I solver')
+)
+@click.option(
+    '--output-file', '-o', type=str,
+    help=('Name of the output (solutions) file. Defaults to the same name '
+          'than problems_file, with -sol suffix.')
+)
+@click.option(
+    '--frac-gap-phase-i', type=float, default=None,
+    help="Use cbc solver with given fracGap, only for phase I"
+)
+@click.option(
+    '--frac-gap-phase-ii', type=float, default=None,
+    help="Use cbc solver with given fracGap, only for phase II"
+)
 @click.option(
     '--frac-gap', type=float, default=None,
-    help="Use cbc solver with given fracGap"
+    help="Use cbc solver with given fracGap, both for phase I and II"
 )
 @click.option(
     '--max-seconds', type=float, default=None,
-    help="Use cbc solver with given maxSeconds"
+    help="Use cbc solver with given maxSeconds, both for phase I and II"
 )
 @click.option(
     '--threads', type=int, default=None,
-    help="Use cbc solver with given number of threads"
+    help="Use cbc solver with given number of threads, both for phase I and II"
 )
-def solve_phase_i(problems_file, problem_id, output_file, frac_gap,
-                  max_seconds, threads):
-    "Solves phase I of a given problem"
+def solve(problems_file, phase_i_id, phase_ii_id,
+          output_file, frac_gap_phase_i, frac_gap_phase_ii,
+          frac_gap, max_seconds, threads):
+    "Solves phase I and optionally phase II of given problems"
+
+    if phase_i_id is None:
+        click.echo("--phase-i-id option is required")
+        return
 
     click.echo("Reading {}...".format(problems_file), nl=False)
     t_ini = time.process_time()
-    problem = read_problems_from_yaml(problems_file)[problem_id]
+    problems = read_problems_from_yaml(problems_file)
     click.echo("({}s)".format(time.process_time()-t_ini))
 
-    if any(option is not None for option in (frac_gap, max_seconds, threads)):
-        solver = COIN(fracGap=frac_gap, maxSeconds=max_seconds, threads=threads)
+    if phase_i_id not in problems:
+        clic.echo("Problem id '{}' not found".format(phase_i_id))
+        return
+
+    prob1 = problems[phase_i_id]
+
+    if phase_ii_id is not None and phase_ii_id not in problems:
+        clic.echo("Problem id '{}' not found".format(phase_ii_id))
+        return
+    if phase_ii_id is not None:
+        prob2 = problems[phase_ii_id]
+    else:
+        prob2 = None
+
+    if frac_gap_phase_i is None and frac_gap is not None:
+        frac_gap_phase_i = frac_gap
+    if frac_gap_phase_ii is None and frac_gap is not None:
+        frac_gap_phase_ii = frac_gap
+    if any(option is not None for option in (frac_gap_phase_i, max_seconds, threads)):
+        solver = COIN(fracGap=frac_gap_phase_i, maxSeconds=max_seconds, threads=threads)
     else:
         solver = None
 
     click.echo("Solving phase I...", nl=False)
     t_ini = time.process_time()
-    solution = PhaseI(problem).solve(solver=solver)
+    solution1 = PhaseI(prob1).solve(solver=solver)
     click.echo("({}s)".format(time.process_time()-t_ini))
+    solutions = [solution1]
 
-    click.echo("Writing solution in {}...".format(output_file.name), nl=False)
+    if prob2:
+        if any(option is not None for option in (frac_gap_phase_ii, max_seconds, threads)):
+            solver = COIN(fracGap=frac_gap_phase_ii, maxSeconds=max_seconds, threads=threads)
+        else:
+            solver = None
+        click.echo("Solving phase II...", nl=False)
+        t_ini = time.process_time()
+        solution2 = PhaseII(prob2, solution1, solver=solver).solve_period()
+        click.echo("({}s)".format(time.process_time()-t_ini))
+        solutions.append(solution2)
+
+    if output_file is None:
+        root, ext = os.path.splitext(problems_file)
+        if ext == ".gz":
+            root, ext = os.path.splitext(root)
+        output_file = root + "-sol" + ext
+    click.echo("Writing solutions in {}...".format(output_file), nl=False)
     t_ini = time.process_time()
-    output = solutions_to_yaml([solution])
-    output_file.write(output)
+    output = solutions_to_yaml(solutions)
+    with open(output_file, "w") as f:
+        f.write(output)
     click.echo("({}s)".format(time.process_time()-t_ini))
 
 if __name__ == "__main__":

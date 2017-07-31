@@ -1,12 +1,16 @@
 # Run this file with nosetest or pytest
 """Tests for the validation of schemas an yaml examples"""
 
-import yaml
+import ruamel.yaml
 import os
 import pytest
 from jsonschema import (validate, Draft4Validator, exceptions)
 from malloovia import util
 from .datapaths import PresetDataPaths
+
+yaml = ruamel.yaml.YAML(typ='safe')
+yaml.safe_load = yaml.load
+
 
 # pylint: disable=invalid-name
 
@@ -83,7 +87,7 @@ class TestValidateExamples(PresetDataPaths):
         # This case in fact cannot be validated because it cannot be load, because the
         # references to the problem entities cannot be solved
         full = util.preprocess_yaml(self.get_invalid("solution_without_problem.yaml"))
-        with pytest.raises(yaml.composer.ComposerError, match="undefined alias"):
+        with pytest.raises(ruamel.yaml.composer.ComposerError, match="undefined alias"):
             data = yaml.safe_load(full)
 
     def test_invalid_problem_numbers_as_names(self):

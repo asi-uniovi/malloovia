@@ -773,7 +773,7 @@ class TestMallooviaApi(PresetProblemPaths):
         system = system_from_problem(problem)
 
         # Emulate phase II
-        predictor = phases.Omniscent_STWP_Predictor(problem.workloads)
+        predictor = phases.OmniscentSTWPredictor(problem.workloads)
         for workloads in predictor:
             # Solve this problem with malloovia. Since the workloads are composed of
             # a single value, this is equivalent to solve a single timeslot

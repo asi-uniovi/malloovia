@@ -1,12 +1,15 @@
 "Tests for util.read_problem_from_yaml() and model.Performances"
 import pytest
-import yaml
+import ruamel.yaml
 from jsonschema import validate
 
 from malloovia import util
 from malloovia import phases
 from malloovia.solution_model import Status
 from .datapaths import PresetDataPaths
+
+yaml = ruamel.yaml.YAML(typ='safe')
+yaml.safe_load = yaml.load
 
 # pylint: disable=invalid-name
 
