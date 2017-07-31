@@ -159,10 +159,10 @@ def solve(problems_file, phase_i_id, phase_ii_id,
     click.echo("Reading {}...".format(problems_file), nl=False)
     t_ini = time.process_time()
     problems = read_problems_from_yaml(problems_file)
-    click.echo("({}s)".format(time.process_time()-t_ini))
+    click.echo("({:.3f}s)".format(time.process_time()-t_ini))
 
     if phase_i_id not in problems:
-        clic.echo("Problem id '{}' not found".format(phase_i_id))
+        click.echo("Problem id '{}' not found".format(phase_i_id))
         return
 
     prob1 = problems[phase_i_id]
@@ -187,7 +187,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
     click.echo("Solving phase I...", nl=False)
     t_ini = time.process_time()
     solution1 = PhaseI(prob1).solve(solver=solver)
-    click.echo("({}s)".format(time.process_time()-t_ini))
+    click.echo("({:.3f}s)".format(time.process_time()-t_ini))
     solutions = [solution1]
 
     if prob2:
@@ -199,7 +199,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
         t_ini = time.process_time()
         progress_predictor = OmniscentProgressSTWPredictor(prob2.workloads)
         solution2 = PhaseII(prob2, solution1, solver=solver).solve_period(progress_predictor)
-        click.echo("({}s)".format(time.process_time()-t_ini))
+        click.echo("({:.3f}s)".format(time.process_time()-t_ini))
         solutions.append(solution2)
 
     if output_file is None:
@@ -212,7 +212,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
     output = solutions_to_yaml(solutions)
     with open(output_file, "w") as f:
         f.write(output)
-    click.echo("({}s)".format(time.process_time()-t_ini))
+    click.echo("({:.3f}s)".format(time.process_time()-t_ini))
 
 if __name__ == "__main__":
     cli()

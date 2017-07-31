@@ -96,6 +96,7 @@ class PhaseI:
 # Phase II
 ###############################################################################
 class STWPredictor:
+    """Abstract base class for short-term workload predictors"""
     pass
 
 class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
@@ -167,8 +168,9 @@ class PhaseII:
 
 
 
-    def solve_timeslot(self, system: System,
+    def solve_timeslot(self,
                        workloads: Sequence[Workload],
+                       system: System = None,
                        solver: Any=None) -> SolutionI:
         """Solve one timeslot of phase II for the workload received.
 
@@ -178,6 +180,7 @@ class PhaseII:
 
         Args:
             system: the part of the problem which does not depend on the workload.
+                If ``None``, the system will be extracted from ``self.problem``.
             workloads: tuple with one Workload per app. Only the first value in the
                  ``values`` field of each workload is used, as the prediction for
                  the timeslot to solve.
@@ -187,6 +190,8 @@ class PhaseII:
         Returns:
             The solution for that timeslot, stored in a :class:`SolutionI` object.
         """
+        if system == None:
+                system = system_from_problem(self.problem)
         if workloads in self._solutions:
             # This workload was already solved. Nothing to be done
             return self._solutions[workloads]
@@ -266,7 +271,7 @@ class PhaseII:
             predictor = OmniscentSTWPredictor(self.problem.workloads)
         solutions = []
         for workloads in predictor:
-            solutions.append(self.solve_timeslot(system, workloads))
+            solutions.append(self.solve_timeslot(system=system, workloads=workloads))
         return self._aggregate_solutions(solutions)
 
     def _aggregate_solutions(self, solutions):
