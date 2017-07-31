@@ -8,8 +8,9 @@ Conceptually, Malloovia is an extension of `Lloovia <https://github.com/asi-unio
 However, the implementation of Malloovia is not a simple extension of the one of Lloovia. Instead, the code was completly rewritten to obtain a more clean, robust and maintenable implementation. Malloovia is now a standard python package which can be installed with ``pip`` and has very few dependencies (which are automatically installed through ``pip install malloovia``):
 
 * `PuLP <https://pythonhosted.org/PuLP/>`_ is used to create and solve the linear programming problem.
-* `PyYaml <https://pypi.python.org/pypi/PyYAML>`_ is used to allow Malloovia to read the problem definition from YAML files, and write the solution to other YAML files, for better interoperability with other tools.
+* `ruamel.yaml <https://pypi.python.org/pypi/ruamel.yaml>`_ is used to allow Malloovia to read the problem definition from YAML files, and write the solution to other YAML files, for better interoperability with other tools.
 * `jsonschema <https://pypi.python.org/pypi/jsonschema>`_ is used to validate the syntax of the YAML files used.
+* `click <http://click.pocoo.org/>`_ and `progress <https://pypi.python.org/pypi/progress>`_ to provide a :ref:`command-line interface <cli>`.
 
 This small number of requirements is an advantage over Lloovia which had dependencies on other "heavy" packages, such as numpy, pandas, matplotlib, jupyter notebooks, etc.
 

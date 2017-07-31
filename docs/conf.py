@@ -36,7 +36,7 @@ from malloovia import * # To get the high level api
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ['sphinx.ext.autodoc', 
+extensions = ['sphinx.ext.autodoc',
               'sphinxcontrib.napoleon',
               'sphinx_autodoc_typehints',
               'sphinx.ext.doctest',
@@ -104,7 +104,7 @@ html_theme_options = {
         'logo_name': True,
         'description': 'Use linear programming to allocate applications to cloud infrastructure',
         'fixed_sidebar': True,
-        'show_related': False,
+        'show_related': True,
         'show_powered_by': False,
         'sidebar_collapse': True,
         # 'github_user': 'asi-uniovi',

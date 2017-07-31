@@ -15,3 +15,12 @@ History
 * Integration with Travis-CI and ReadTheDocs.
 * Working on the documentation.
 * Modified YAML schema of the Solutions.
+
+0.3.0 (2017-07-31)
+------------------
+
+* Much improved documentation. Windows installation covered.
+* Command-line interface
+* Changed from PyYAML to ruamel.yaml, much faster
+* Read from YAML now accepts gzipped files too
+* Some bugs fixed in the schema
