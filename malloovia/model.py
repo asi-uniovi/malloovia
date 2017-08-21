@@ -127,7 +127,7 @@ InstanceClass = _namedtuple_with_defaults(       # pylint: disable=invalid-name
     is_reserved=False,
     cores=1)
 """InstanceClass characterization."""
-InstanceClass.id.__doc__ = "\
+InstanceClass.id.__doc__ = """\
     str: arbitrary id for the instance class object."""
 InstanceClass.name.__doc__ = """\
     str: name of the instance class, usually built from the name of the VM type
@@ -186,6 +186,9 @@ System = _namedtuple_with_defaults(
 """Stores the part of a problem which does not depend on the workload."""
 System.id.__doc__ = "str: arbitary id for the system object."
 System.name.__doc__ = "str: name for the problem."
+System.apps.__doc__ = """\
+    Tuple[:class:`App`]: Tuple of objects of type :class:`App` describing
+        the applications that are used in the system."""
 System.instance_classes.__doc__ = """\
     Tuple[:class:`InstanceClass`]: Tuple of objects of type
         :class:`InstanceClass`, describing the cloud infrastructure which
@@ -279,7 +282,7 @@ class PerformanceValues(object):                 # pylint: disable=R0903
                 internal copy.
         """
         # Two copies of the information are stored. One is a copy of the
-        # original dictionary, indexed by python objects
+        # original dictionary, indexed by python objects.
         # The second is indexed by ic and app ids, which is more convenient
         # for repr(), to_yaml(), and get_by_id()
         self.__perfs = copy.deepcopy(data)
@@ -298,10 +301,10 @@ class PerformanceValues(object):                 # pylint: disable=R0903
     def __getitem__(self, ic_app: Tuple[InstanceClass, App]) -> float:
         """Get the performance of a pair (instance class, application).
 
-        Arguments:
+        Args:
             ic_app: The pair (instance class, application) whose performance is looked up.
-
-        Returns: The performance of that pair
+        Returns:
+            The performance of that pair
         Raises:
             KeyError: when the instance class or application is not stored in this PerformanceSet.
         """
@@ -312,7 +315,7 @@ class PerformanceValues(object):                 # pylint: disable=R0903
     def get_by_ids(self, ins_id: str, app_id: str) -> float:
         """Get the performance of a pair (instance class, app) by their ids.
 
-        Arguments:
+        Args:
             ins_id: id of the instance class
             app_id: id of the app
         Returns:

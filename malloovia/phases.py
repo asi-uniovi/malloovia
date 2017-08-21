@@ -1,4 +1,4 @@
-"""Module providing high level  PhaseI and PhaseII classes which drive the solver"""
+"""Module providing high level PhaseI and PhaseII classes which drive the solver"""
 from typing import (Tuple, Any, Sequence)
 import time
 from collections import OrderedDict
@@ -88,7 +88,7 @@ class PhaseI:
 
     @property
     def solution(self):
-        """Stored solution of the problem (type :class:`SolutionI`) (it is None
+        """Stored solution of the problem (type :class:`SolutionI`). It is None
         if the problem has not been yet solved."""
         return self.__solution
 
@@ -101,7 +101,7 @@ class STWPredictor:
 
 class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
     """Concrete implementation of STWP_Predictor which knows in advance the STWP for
-    all timeslot in the future.
+    all timeslots in the future.
 
     Implements the iterable interface and when looping over it, it returns one
     tuple at a time, whose elements are :class:`Workload` whose
@@ -153,24 +153,24 @@ class PhaseII:
             phase_i_solution: the solution returned by Phase I
             solver: optional Pulp solver. It can have custom arguments, such
                 as fracGap and maxSeconds.
+            reuse_rsv: boolean indicating if reserved instances that were assigned in
+                phase I to an application can be reused for another application.
         """
         self.problem = problem
         self.phase_i_solution = phase_i_solution
         self.solver = solver
         self.reuse_rsv = reuse_rsv
 
-        # Hash with the already computed solutions for each workload level
+        # Hash table with the already computed solutions for each workload level
         # initially empty
         self._solutions = OrderedDict()
 
-        # Internal handle to the inner lloovia solver
+        # Internal handle to the inner malloovia solver
         self._malloovia = None
-
-
 
     def solve_timeslot(self,
                        workloads: Sequence[Workload],
-                       system: System = None,
+                       system: System=None,
                        solver: Any=None) -> SolutionI:
         """Solve one timeslot of phase II for the workload received.
 
@@ -179,19 +179,20 @@ class PhaseII:
         present, the same solution is returned.
 
         Args:
-            system: the part of the problem which does not depend on the workload.
-                If ``None``, the system will be extracted from ``self.problem``.
             workloads: tuple with one Workload per app. Only the first value in the
                  ``values`` field of each workload is used, as the prediction for
                  the timeslot to solve.
+            system: the part of the problem which does not depend on the workload.
+                If ``None``, the system will be extracted from ``self.problem``.
             solver: Pulp solver. It can have custom arguments, such
                 as fracGap and maxSeconds.
 
         Returns:
             The solution for that timeslot, stored in a :class:`SolutionI` object.
         """
-        if system == None:
-                system = system_from_problem(self.problem)
+        if system is None:
+            system = system_from_problem(self.problem)
+
         if workloads in self._solutions:
             # This workload was already solved. Nothing to be done
             return self._solutions[workloads]
@@ -253,7 +254,7 @@ class PhaseII:
 
         return self._solutions[workloads]
 
-    def solve_period(self, predictor: STWPredictor = None) -> SolutionII:
+    def solve_period(self, predictor: STWPredictor=None) -> SolutionII:
         """Solves the complete reserved period by iteratively solving each timeslot.
 
         Args:
@@ -321,7 +322,17 @@ def _solve_dual_problem(system: System,
                         workloads: Sequence[Workload],
                         preallocation: ReservedAllocation,
                         solver: Any=None) -> SolutionI:
-    """Uses MallooviaMaximizeTimeslotPerformance to solve the dual problem"""
+    """Uses MallooviaMaximizeTimeslotPerformance to solve the dual problem
+
+    Args:
+        system: infrasctructure, apps and performance of the system
+        workloads: list of workloads, one per app
+        preallocation: allocation for reserverd instances, from phase I, or None
+
+    Returns:
+        A :class:`SolutionI` object with the solution which maximizes performance
+        in the timeslot.
+    """
 
     malloovia = MallooviaMaximizeTimeslotPerformance(
         system=system,
@@ -398,7 +409,7 @@ def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float,
 
     Returns:
         The time required to create the problem, and the statistics from the solver."""
-    # TODO: decide how to handls gcd
+    # TODO: decide how to handle gcd
 
     status = Status.unknown
     lower_bound = None
