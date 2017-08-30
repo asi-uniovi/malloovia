@@ -43,8 +43,8 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
-def read_problems_from_github(dataset: str, id: str = None,
-                              base_url: str = None) -> Union[Problem, Mapping[str, Problem]]:
+def read_problems_from_github(dataset: str, id: str=None,
+                              base_url: str=None) -> Union[Problem, Mapping[str, Problem]]:
     """Reads a problem or set of problems from a GitHub repository.
 
     Args:
@@ -64,7 +64,7 @@ def read_problems_from_github(dataset: str, id: str = None,
 
     if base_url is None:
         base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
-                     "/master/tests/test_data/problems/")
+                    "/master/tests/test_data/problems/")
     url = "{}/{}.yaml".format(base_url, dataset)
     with urllib.request.urlopen(url) as stream:
         data = yaml.safe_load(stream)
@@ -111,8 +111,8 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
             _dict["name"] = _dict["id"]
 
     def create_instance_classes(_list):
-        """Helper functions which creates all required Instance_classes from
-        a list of InstanceClasses, and theLimiting_sets referenced from
+        """Helper function which creates all required Instance_classes from
+        a list of InstanceClasses, and the Limiting_sets referenced from
         those Instance_classes"""
         for ic_data in _list:
             copy_id_to_name(ic_data)
@@ -125,7 +125,7 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
             create_if_neccesary(InstanceClass, ic_data)
 
     def create_workloads(_list):
-        """Helper function which creates all  required Workloads from a list
+        """Helper function which creates all required Workloads from a list
         of workloads, and the Apps referenced from those workloads"""
         for w_data in _list:
             w_data["app"] = create_if_neccesary(App, w_data["app"])
@@ -153,7 +153,7 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
             # required instance types and apps were already created by now,
             # their ids should be present in ids_to_objects.
             # Otherwise it would be a internal error, and an exception
-            #  will be raised
+            # will be raised
             ic_object = ids_to_objects[id(p_data["instance_class"])]
             app_object = ids_to_objects[id(p_data["app"])]
             value = p_data["value"]
@@ -191,7 +191,7 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
 def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disable=too-many-locals
     """Converts problems from the classes used by malloovia to a yaml string.
 
-    Arguments:
+    Args:
         problems: it is a dictionary whose keys are the ids of the problems, and the values are
             instances of :class:`Problem`, which indirectly contains the full specification
             of the system, apps, workloads and performances, through references to other classes
@@ -377,10 +377,10 @@ def preprocess_yaml(input_yaml_filename: str) -> str:
             output.append(line)
     return "".join(output)
 
-def read_file_relative_to(filename: str, relative_to:str) -> str:
+def read_file_relative_to(filename: str, relative_to: str) -> str:
     """Reads one file by its name, considered relative to other filename.
 
-    Arguments:
+    Args:
         filename: the name of the file to read
         relative_to: the name of the file to which the first one is considered relative
 
@@ -404,13 +404,14 @@ def read_file_relative_to(filename: str, relative_to:str) -> str:
         _open = open
     return _open(path_to_filename, mode='rt', encoding="utf8").read()
 
-def read_from_relative_csv(filename: str, relative_to:str) -> Tuple[float]:
-    """Reads and parses the content of one file, given its name considered relative to other filename.
+def read_from_relative_csv(filename: str, relative_to: str) -> Tuple[float]:
+    """Reads and parses the content of one file, given its name considered relative to other
+    filename.
 
     The file is first read by :func:`read_file_relative_to()` and the contents are assumed
     to be a sequence of floating numbers, one per line.
 
-    Arguments:
+    Args:
         filename: the name of the file to read
         relative_to: the name of the file to which the first one is considered relative
 
@@ -426,7 +427,7 @@ def read_from_relative_csv(filename: str, relative_to:str) -> Tuple[float]:
 def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     """Converts a list of solutions to a YAML string.
 
-    Arguments:
+    Args:
         solutions: list of solutions to convert, each one can be a
             :class:`SolutionI` or a :class:`SolutionII`.
     Returns:
@@ -557,7 +558,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         return lines
 
 
-    # First collect al problems referenced in the solutions
+    # First collect all problems referenced in the solutions
     problems = set()
     for solution in solutions:
         problems.add(solution.problem)
@@ -583,7 +584,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
 def _namedtuple_to_yaml(data, level=2):
     """Converts to yaml any namedtuple, via dict.
 
-    Arguments:
+    Args:
         data: the namedtuple to convert
         level: the indentation level
 
@@ -595,7 +596,7 @@ def _namedtuple_to_yaml(data, level=2):
 def _dict_to_yaml(data, level):
     """Converts to yaml any dictionary, by iterating through its keys and values.
 
-    Arguments:
+    Args:
         data: the dict to convert
         level: the indentation level
 
@@ -623,17 +624,17 @@ def get_schema() -> Mapping[str, Any]:
     return schema
 
 def allocation_info_as_dicts(alloc: AllocationInfo,
-                        use_ids=True,
-                        include_timeslot=True,
-                        include_workloads=True,
-                        include_repeats=True) -> Sequence[Mapping[Any,Any]]:
+                             use_ids=True,
+                             include_timeslot=True,
+                             include_workloads=True,
+                             include_repeats=True) -> Sequence[Mapping[Any, Any]]:
     """Converts the :class:`AllocationInfo` structure to a sequence of dicts, which
     are more convenient for analysis with pandas. Each element of the returned
     sequence is a python dictionary whose keys and values are:
 
         * "instance_class" -> either the id or the reference to an instance class
         * "app" -> either the id or the reference to an app
-        * "timeslot" -> the integer which represent the timeslot for this particular allocation
+        * "timeslot" -> the integer which represents the timeslot for this particular allocation
         * "workload" -> a tuple with the workload to be fulfilled by this particular allocation
         * "repeats" -> the number of times this workload appears in phaseI (always 1 for phase II)
         * AllocationInfo.units -> value for this particular allocation. If the units is "vms",
@@ -642,7 +643,7 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
           phase I), for the appplication "app".
 
     Some of these fields are useful only for Phase I, while others are for Phase II. Some
-    boolean arguments allows the selection of these specific fields.
+    boolean arguments allow the selection of these specific fields.
 
     Args:
         alloc: The :class:`AllocationInfo` to convert

@@ -44,13 +44,13 @@ class Malloovia:
       string representation of a "workload tuple", which is a tuple of numbers,
       e.g: ``(1230, 442, 123)``, each one representing the workload of one of the apps.
       After solving the LP problem, the value of the variable is the number of
-      on demand machines of instance class `ic` deployed for application `a` at one
+      on-demand machines of instance class `ic` deployed for application `a` at a
       timeslot which has a workload prediction equal to the tuple ``l``.
 
     Intended usage:
 
     1. Instantiate the class (see constructor parameters below).
-    2. Call object's  ``.create_problem()``.
+    2. Call object's ``.create_problem()``.
     3. Call object's ``.solve()``.
     4. Retrieve solution by calling object's ``.get_allocation()`` to get the solution
        for all variables, or ``.get_reserved_allocation()`` to get ony the number of
@@ -268,7 +268,7 @@ class Malloovia:
                 for load in self.load_hist.keys():
                     self.pulp_problem += lpSum(self.cooked.map_dem[app, ins, load]
                                                for app in self.system.apps) == value, \
-                                 "Reserved instance class {} is fixed to {} "\
+                                 "On-demand instance class {} is fixed to {} "\
                                  "when workload is {}".format(ins, value, load)
 
     def limit_instances_per_limiting_set_restriction(self) -> None:  # pylint: disable=invalid-name
@@ -462,7 +462,7 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
 
 def reorder_workloads(workloads: Sequence[Workload],
                       apps: Sequence[App]) -> Sequence[Workload]:
-    """Returns the a new workloads list ordered as the list of apps.
+    """Returns the a new workload list ordered as the list of apps.
 
     Args:
         workloads: Sequence of workloads to reorder
@@ -500,7 +500,7 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
         workloads = {wl.app: wl.values[0] for wl in self.workloads}
 
         self.pulp_problem += lpSum(
-            [self.cooked.map_res[_a, _ic] 
+            [self.cooked.map_res[_a, _ic]
              * self.system.performances.values[_ic, _a]/workloads[_a]
              for _a in self.system.apps
              for _ic in self.cooked.instances_res] +

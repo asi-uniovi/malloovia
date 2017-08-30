@@ -70,8 +70,8 @@ MallooviaStats = _namedtuple_with_defaults(
     lower_bound=None
 )
 """Stores data related to the Malloovia solver."""
-MallooviaStats.status.__doc__ = ":class:`Status`: status of the solution."
 MallooviaStats.gcd.__doc__ = "bool: whether GCD technique was used or not."
+MallooviaStats.status.__doc__ = ":class:`Status`: status of the solution."
 MallooviaStats.gcd_multiplier.__doc__ = """\
     float: the multiplier used in GCD technique (defaults to 1)."""
 MallooviaStats.frac_gap.__doc__ = """\
@@ -90,15 +90,15 @@ SolvingStats = _namedtuple_with_defaults(
     ])
 """Stores the statistics that can be gathered from a solution
 of Phase I, or one single timeslot in Phase II."""
+SolvingStats.algorithm.__doc__ = """\
+    :class:`MallooviaStats`: additional info related to the particular
+        algorithm used to solve the problem."""
 SolvingStats.creation_time.__doc__ = """\
     float: time required to create the LP problem."""
 SolvingStats.solving_time.__doc__ = """\
     float: time required to solve the LP problem."""
 SolvingStats.optimal_cost.__doc__ = """\
     float: optimal cost as reported by the LP solver."""
-SolvingStats.algorithm.__doc__ = """\
-    :class:`MallooviaStats`: additional info related to the particular
-        algorithm used to solve the problem."""
 
 GlobalSolvingStats = _namedtuple_with_defaults(
     "GlobalSolvingStats",
@@ -116,6 +116,9 @@ GlobalSolvingStats.solving_time.__doc__ = """\
 GlobalSolvingStats.optimal_cost.__doc__ = """\
     float: sum of the optimal costs as reported by the LP problem
         for each timeslot."""
+GlobalSolvingStats.status.__doc__ = """\
+    :class:`Status`: global status computed from the status of
+        each timeslot."""
 
 ReservedAllocation = _namedtuple_with_defaults(
     "ReservedAllocation",
@@ -246,8 +249,8 @@ def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo:
 
 @singledispatch
 def compute_allocation_performance(
-    alloc: AllocationInfo,
-    performances: PerformanceSet) -> AllocationInfo:
+        alloc: AllocationInfo,
+        performances: PerformanceSet) -> AllocationInfo:
     """Computes the performance of each element of the allocation.
 
     Args:

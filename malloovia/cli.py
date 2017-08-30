@@ -26,7 +26,7 @@ class OmniscentProgressSTWPredictor(OmniscentSTWPredictor):
     def __iter__(self):
         bar = ShadyBar(
             "Solving Phase II", max=self.timeslots/10, width=80,
-            suffix = '%(percent).1f%% - ETA: %(eta_td)s')
+            suffix='%(percent).1f%% - ETA: %(eta_td)s')
         count = 0
         for k in OmniscentSTWPredictor.__iter__(self):
             yield k
