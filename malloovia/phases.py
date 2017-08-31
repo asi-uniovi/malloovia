@@ -173,9 +173,8 @@ class PhaseII:
                        solver: Any=None) -> SolutionI:
         """Solve one timeslot of phase II for the workload received.
 
-        The solution is stored in the field 'self._solutions' using the tuple
-        ``(system, workloads)`` as key. If a solution for that key is already
-        present, the same solution is returned.
+        The solution is stored in the field 'self._solutions' using the workloads as key.
+        If a solution for that key is already present, the same solution is returned.
 
         Args:
             workloads: tuple with one Workload per app. Only the first value in the
