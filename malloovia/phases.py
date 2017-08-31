@@ -118,7 +118,6 @@ class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,to
             ValueError: if the lengths of the workloads do not match.
         """
         self.stwp = stwp
-        self.index = 0
         self.timeslots = len(stwp[0].values)
         if not all(len(w.values) == self.timeslots for w in stwp):
             raise ValueError("All workloads should have the same length")
