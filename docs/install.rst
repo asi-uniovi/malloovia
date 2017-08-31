@@ -41,11 +41,11 @@ Using only python, you create a virtual environment by typing (unix based platfo
 
   $ python -m venv ~/myenvs/malloovia
 
-Or, in windows:
+Or, in windows with the standard command line (PowerShell would require modifications not explained here):
 
 .. code-block:: doscon
 
-  C:\> python -m venv %USERPROFILE%\malloovia
+  C:\> python -m venv %USERPROFILE%\myenvs\malloovia
 
 This will create the folder ``myenvs/malloovia`` in the home folder, with a private copy of Python and
 other tools (like ``pip``) required to install packages locally into that folder.

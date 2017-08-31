@@ -68,6 +68,7 @@ Ready to contribute? Here's how to set up `malloovia` for local development.
 3. Install your local copy into a virtualenv (see :ref:`installation document <install>` for instructions about how to create the virtual environment in your platform). Once the venv is activated::
 
     (malloovia)$ cd malloovia/
+    (malloovia)$ pip install ruamel.yaml
     (malloovia)$ python setup.py develop
     (malloovia)$ pip install -r requirements_dev.txt
 
