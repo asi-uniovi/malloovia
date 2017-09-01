@@ -1,8 +1,8 @@
 # coding: utf-8
-"""\This module implements the base classes which define a
+"""This module implements the base classes which define a
 problem to be solved by Malloovia.
 
-All these clases are inmutable (most of them are :class:`namedtuple`\ s).
+All these clases are inmutable (most of them are :class:`namedtuple`\\ s).
 Usually they are initialized via the functions provided in :mod:`util` module.
 For example::
 
@@ -179,7 +179,7 @@ PerformanceSet.values.__doc__ = """\
         and instance class."""
 
 
-System = _namedtuple_with_defaults(
+System = _namedtuple_with_defaults(             # pylint: disable=invalid-name
     "System",
     ["id", "name", "apps", "instance_classes", "performances"]
 )

@@ -54,7 +54,8 @@ def read_problems_from_github(dataset: str, id: str=None,
             are read and a dictionary is returned, whose keys are problem ids
             and the values are the :class:`Problem` instances.
         base_url: the url to the folder where the file is stored. If None,
-            it will read from https://raw.githubusercontent.com/asi-uniovi/malloovia/master/tests/test_data/problems/
+            it will read from
+            https://raw.githubusercontent.com/asi-uniovi/malloovia/master/tests/test_data/problems/
 
     Returns:
         A dictionary whose keys are problem ids, and the values are
@@ -65,14 +66,17 @@ def read_problems_from_github(dataset: str, id: str=None,
     if base_url is None:
         base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
                     "/master/tests/test_data/problems/")
+
     url = "{}/{}.yaml".format(base_url, dataset)
     with urllib.request.urlopen(url) as stream:
         data = yaml.safe_load(stream)
+
     problems = problems_from_dict(data, dataset)
+
     if id is None:
         return problems
-    else:
-        return problems[id]
+
+    return problems[id]
 
 def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[str, Problem]:
     """Takes data from a dictionary with a particular structure, and stores it in
@@ -477,6 +481,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         return lines
 
     def solving_stats_to_yaml(stats: SolvingStats, level: int) -> List[str]:
+        """Converts a SolvingStats to a yaml string"""
         lines = []
         tab = "  "*level
         lines.extend((
@@ -491,6 +496,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
 
     def global_solving_stats_to_yaml(stats: GlobalSolvingStats,
                                      level: int) -> List[str]:
+        """Converts a GlobalSolvingStats to a yaml string"""
         lines = []
         tab = "  "*level
         lines.extend((
@@ -504,6 +510,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
 
     def reserved_allocation_to_yaml(rsv: ReservedAllocation,
                                     level: int) -> List[str]:
+        """Converts a ReservedAllocation to a yaml string"""
         lines = []
         tab = "  "*level
         if rsv is None:
@@ -519,12 +526,15 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         return lines
 
     def list_of_references_to_yaml(lst: Sequence[Any]) -> str:
+        """Generates a comma separated list of yaml references using the id"""
         return ", ".join("*{}".format(element.id) for element in lst)
 
     def list_to_yaml(lst: Sequence[Any]) -> str:
+        """Generates a comma separated list of python objects"""
         return ", ".join(str(element) for element in lst)
 
     def allocation_to_yaml(alloc: AllocationInfo, level: int) -> List[str]:
+        """Converts an AllocationInfo to a yaml string"""
         lines = []
         tab = "  "*level
         if alloc is None:
@@ -608,7 +618,7 @@ def _dict_to_yaml(data, level):
         if value is None:
             value = 'null'
         if hasattr(value, "name"):  # For Enums
-            value = value.name
+            value = value.name                  # pylint:disable=no-member
         lines.append("{}{}: {}".format("  "*level, key, value))
     return lines
 
@@ -711,10 +721,10 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
     def _repr(element):
         if use_ids:
             return element.id
-        else:
-            return element
 
-    for t, t_alloc in enumerate(alloc.values):
+        return element
+
+    for slot, t_alloc in enumerate(alloc.values):
         for app, a_alloc in enumerate(t_alloc):
             for i, ic_alloc in enumerate(a_alloc):
                 result = {}
@@ -722,11 +732,11 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                 result["app"] = _repr(alloc.apps[app])
                 result[alloc.units] = ic_alloc
                 if include_workloads:
-                    result["workload"] = alloc.workload_tuples[t]
+                    result["workload"] = alloc.workload_tuples[slot]
                 if include_timeslot:
-                    result["timeslot"] = t
+                    result["timeslot"] = slot
                 if include_repeats:
-                    result["repeats"] = alloc.repeats[t]
+                    result["repeats"] = alloc.repeats[slot]
                 yield result
 
 

@@ -3,8 +3,8 @@
 """Classes for storing and reporting solutions of malloovia problems."""
 
 from typing import Union
-import copy
-from enum import IntEnum, Enum
+from enum import IntEnum
+from functools import singledispatch
 import pulp
 
 from .model import (
@@ -216,8 +216,6 @@ SolutionII.allocation.__doc__ = """\
     :class:`AllocationInfo`: allocation for the whole period, built from the
         allocations of the individual timeslots."""
 
-from functools import singledispatch
-
 @singledispatch
 def compute_allocation_cost(alloc: AllocationInfo) -> AllocationInfo:
     """Computes the cost of each element of the allocation.
@@ -280,8 +278,9 @@ def compute_allocation_performance(
 
 @compute_allocation_performance.register(SolutionI)
 @compute_allocation_performance.register(SolutionII)
-def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo:
-    return compute_allocation_performance(solution.allocation,
+def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo: # pylint:disable=function-redefined
+    return compute_allocation_performance(
+        solution.allocation,
         solution.problem.performances.values)
 
 # These enumerates are useful to use with numpy to sum

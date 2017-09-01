@@ -277,7 +277,7 @@ class PhaseII:
         """Build a SolutionII object from the data in the _solutions
         attribute. It has to convert the dictionary of Solutions for
         each load level into a single solution which will contain
-        a list of stats (per time slot) plus a DataFame with allocations
+        a list of stats (per time slot) plus a AllocationInfo with allocations
         per time slot.
         """
         if all(s.solving_stats.algorithm.status == Status.optimal for s in solutions):

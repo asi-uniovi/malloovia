@@ -321,7 +321,8 @@ class Malloovia:
         """Calls PuLP solver.
 
         Args:
-            *args \**kwargs: are passed to ``LpProblem.solve()``.
+            *args: positional args passed to ``LpProblem.solve()``
+            \\**kwargs: keyword args passed to ``LpProblem.solve()``.
 
         Returns:
             the value returned by ``LpProblem.solve()``.
@@ -705,3 +706,4 @@ __all__ = [
     'Malloovia', 'get_load_hist_from_load',
     'MallooviaMaximizeTimeslotPerformance'
     ]
+ 

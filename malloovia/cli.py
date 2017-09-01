@@ -23,17 +23,18 @@ yaml.safe_load = yaml.load
 
 
 class OmniscentProgressSTWPredictor(OmniscentSTWPredictor):
+    """Adds a progress bar to an OmniscentSTWPredictor"""
     def __iter__(self):
-        bar = ShadyBar(
-            "Solving Phase II", max=self.timeslots/10, width=80,
+        progress_bar = ShadyBar(
+            "Solving Phase II", max=self.timeslots/10, width=60,
             suffix='%(percent).1f%% - ETA: %(eta_td)s')
         count = 0
         for k in OmniscentSTWPredictor.__iter__(self):
             yield k
             count = (count + 1) % 10
             if count == 0:
-                bar.next()
-        bar.finish()
+                progress_bar.next()
+        progress_bar.finish()
 
 def validate_yaml_file(filename, partial=False, kind=None):
     """Validates yaml problem or solution against malloovia schema.
@@ -93,9 +94,9 @@ def validate_multiple_yaml_files(filenames, partial, problems_only, verbose):
     for filename in filenames:
         try:
             validate_yaml_file(filename, partial, kind)
-        except Exception as excep:
+        except Exception as excep:          # pylint:disable=broad-except
             if hasattr(excep, "message"):
-                msg = excep.message
+                msg = excep.message         # pylint:disable=no-member
             else:
                 msg = str(excep)
             if verbose:
@@ -110,8 +111,8 @@ def validate_multiple_yaml_files(filenames, partial, problems_only, verbose):
 
 @cli.command("solve")
 @click.argument(
-    'problems_file', type=click.Path(exists=True), nargs=1,
-# help='Name of the file containing the infrastructure and problems description'
+    # Name of the file containing the infrastructure and problems description
+    'problems_file', type=click.Path(exists=True), nargs=1
 )
 @click.option(
     '--phase-i-id', '-1', type=str, nargs=1,
@@ -168,7 +169,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
     prob1 = problems[phase_i_id]
 
     if phase_ii_id is not None and phase_ii_id not in problems:
-        clic.echo("Problem id '{}' not found".format(phase_ii_id))
+        click.echo("Problem id '{}' not found".format(phase_ii_id))
         return
     if phase_ii_id is not None:
         prob2 = problems[phase_ii_id]
@@ -210,8 +211,8 @@ def solve(problems_file, phase_i_id, phase_ii_id,
     click.echo("Writing solutions in {}...".format(output_file), nl=False)
     t_ini = time.process_time()
     output = solutions_to_yaml(solutions)
-    with open(output_file, "w") as f:
-        f.write(output)
+    with open(output_file, "w") as out_f:
+        out_f.write(output)
     click.echo("({:.3f}s)".format(time.process_time()-t_ini))
 
 if __name__ == "__main__":
