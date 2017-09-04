@@ -177,8 +177,8 @@ class PhaseII:
                        solver: Any=None) -> SolutionI:
         """Solve one timeslot of phase II for the workload received.
 
-        The solution is stored in the field 'self._solutions' using the workloads as key.
-        If a solution for that key is already present, the same solution is returned.
+        The solution is stored in the field 'self._solutions' using the pairs (system, workloads)
+        as keys. If a solution for that key is already present, the same solution is returned.
 
         Args:
             workloads: tuple with one Workload per app. Only the first value in the
@@ -195,9 +195,9 @@ class PhaseII:
         if system is None:
             system = system_from_problem(self.problem)
 
-        if workloads in self._solutions:
+        if (system, workloads) in self._solutions:
             # This workload was already solved. Nothing to be done
-            return self._solutions[workloads]
+            return self._solutions[system, workloads]
 
         if not self.reuse_rsv:
             raise NotImplementedError("Solving without reuse is not implemented")
@@ -246,7 +246,7 @@ class PhaseII:
         valid_id = "sol_for_{}".format(
             "_".join(str(wl.values[0]) for wl in workloads)
         )
-        self._solutions[workloads] = SolutionI(
+        self._solutions[system, workloads] = SolutionI(
             id=valid_id,
             problem=self.problem,
             solving_stats=solving_stats,
@@ -254,7 +254,7 @@ class PhaseII:
             allocation=allocation
         )
 
-        return self._solutions[workloads]
+        return self._solutions[system, workloads]
 
     def solve_period(self, predictor: STWPredictor=None) -> SolutionII:
         """Solves the complete reserved period by iteratively solving each timeslot.
