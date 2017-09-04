@@ -283,21 +283,6 @@ def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo: # pylint:disabl
         solution.allocation,
         solution.problem.performances.values)
 
-# These enumerates are useful to use with numpy to sum
-# the allocation performances or costs over different axis
-# for example:
-#
-# np.sum(allocation_cost, axis=GroupBy.app.value)
-#
-# class GroupBy(Enum):
-#     app_and_iclass = 0
-#     iclass = (0, 1)
-#     app = (0, 2)
-#     t_and_iclass = 1
-#     t = (1, 2)
-#     t_and_app = 2
-#     total = (0, 1, 2)
-
 __all__ = [
     'Status', 'MallooviaStats', 'SolvingStats', 'GlobalSolvingStats',
     'AllocationInfo', 'ReservedAllocation', 'SolutionI', 'SolutionII',
