@@ -2,6 +2,7 @@
 from typing import (Tuple, Any, Sequence)
 import time
 from collections import OrderedDict
+import collections.abc
 from pulp import (PulpSolverError)
 
 from .lpsolver import (
@@ -95,8 +96,11 @@ class PhaseI:
 ###############################################################################
 # Phase II
 ###############################################################################
-class STWPredictor:
+class STWPredictor(collections.abc.Iterable):
     """Abstract base class for short-term workload predictors"""
+
+    # It is abstract because it does not implements __iter__
+    # Any attepmt to instantiate this class will produce a run-time error
     pass
 
 class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
