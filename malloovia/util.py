@@ -439,18 +439,6 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         associated problem. The YAML uses anchors and references
         to tie up the different parts.
     """
-    def yamlize(value):
-        """Converts a python value to a valid YAML representation"""
-        if value is None:
-            return "null"
-
-        if value is True:
-            return "true"
-
-        if value is False:
-            return "false"
-
-        return value
 
     def solution_i_to_yaml(sol: SolutionI) -> List[str]:
         """Converts a SolutionI to a yaml string"""
@@ -503,7 +491,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines.extend((
             "{}creation_time: {}".format(tab, stats.creation_time),
             "{}solving_time: {}".format(tab, stats.solving_time),
-            "{}optimal_cost: {}".format(tab, yamlize(stats.optimal_cost)),
+            "{}optimal_cost: {}".format(tab, _yamlize(stats.optimal_cost)),
             "{}algorithm:".format(tab),
             "  {}malloovia:".format(tab),
         ))
@@ -631,13 +619,35 @@ def _dict_to_yaml(data, level):
     """
     lines = []
     for key, value in data.items():
-        if value is None:
-            value = 'null'
-        if hasattr(value, "name"):  # For Enums
-            value = value.name                  # pylint:disable=no-member
+        value = _yamlize(value)
         lines.append("{}{}: {}".format("  "*level, key, value))
     return lines
 
+def _yamlize(value: Any) -> Any:
+    """Converts a python value to a valid YAML representation.
+
+    Args:
+        value: the python value to convert
+
+    Returns:
+        Either a string containing ``"null"``, ``"true"`` or ``"false"``
+        for the special cases ``None``, ``True`` and ``False``, resp., or
+        ``value.name`` if present (for ``Enum``\\ s), or
+        the same value received as input for other cases."""
+
+    if value is None:
+        return "null"
+
+    if value is True:
+        return "true"
+
+    if value is False:
+        return "false"
+
+    if hasattr(value, "name"):  # For Enums
+        return value.name                  # pylint:disable=no-member
+
+    return value
 
 def get_schema() -> Mapping[str, Any]:
     """Returns Malloovia's json schema which can be used to validate the

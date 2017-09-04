@@ -68,6 +68,10 @@ class TestUtilModule(PresetDataPaths):
         assert sol_i.solving_stats.optimal_cost == 178
 
         sol_i_yaml = util.solutions_to_yaml([sol_i])
+        assert "true" in sol_i_yaml
+        assert "True" not in sol_i_yaml
+        assert "False" not in sol_i_yaml
+        assert "None" not in sol_i_yaml
         sol_i_dict = yaml.safe_load(sol_i_yaml)
         with open(self.get_schema("malloovia.schema.yaml")) as file:
             sol_schema = yaml.safe_load(file)
@@ -98,6 +102,11 @@ class TestUtilModule(PresetDataPaths):
             reserved_allocation=None)
 
         sol_i_yaml = util.solutions_to_yaml([sol_i])
+        assert "true" in sol_i_yaml
+        assert "True" not in sol_i_yaml
+        assert "False" not in sol_i_yaml
+        assert "null" in sol_i_yaml
+        assert "None" not in sol_i_yaml
         sol_i_dict = yaml.safe_load(sol_i_yaml)
         with open(self.get_schema("malloovia.schema.yaml")) as file:
             sol_schema = yaml.safe_load(file)

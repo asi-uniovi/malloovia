@@ -17,7 +17,7 @@ Instance_classes:
     limiting_sets: [*Cloud1]
     max_vms: 20
     price: 10
-    is_reserved: False
+    is_reserved: false
     cores: 1
   - &m3large_r
     id: m3large_r
@@ -25,7 +25,7 @@ Instance_classes:
     limiting_sets: [*CloudR]
     max_vms: 20
     price: 7
-    is_reserved: True
+    is_reserved: true
     cores: 1
 
 Apps:
