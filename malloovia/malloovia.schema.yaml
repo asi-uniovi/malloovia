@@ -240,9 +240,11 @@ definitions:
         items: {$ref: "#/definitions/solving_stats"}
       global_solving_stats: {$ref: "#/definitions/global_solving_stats"}
       allocation: {$ref: "#/definitions/allocation"}
+    required: [id, problem, previous_phase, solving_stats, global_solving_stats, allocation]
+    additionalProperties: false
 
   Solution:
-    OneOf:
+    oneOf:
       - {$ref: "#/definitions/phase_I_solution"}
       - {$ref: "#/definitions/phase_II_solution"}
 

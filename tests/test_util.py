@@ -5,7 +5,7 @@ from jsonschema import validate
 
 from malloovia import util
 from malloovia import phases
-from malloovia.solution_model import Status
+from malloovia.solution_model import Status, SolvingStats, SolutionI, MallooviaStats
 from .datapaths import PresetDataPaths
 
 yaml = ruamel.yaml.YAML(typ='safe')
@@ -66,6 +66,36 @@ class TestUtilModule(PresetDataPaths):
         sol_i = phases.PhaseI(problem_phase_i).solve()
         assert sol_i.solving_stats.algorithm.status == Status.optimal
         assert sol_i.solving_stats.optimal_cost == 178
+
+        sol_i_yaml = util.solutions_to_yaml([sol_i])
+        sol_i_dict = yaml.safe_load(sol_i_yaml)
+        with open(self.get_schema("malloovia.schema.yaml")) as file:
+            sol_schema = yaml.safe_load(file)
+        validate(sol_i_dict, sol_schema)
+
+    def test_aborted_solution_i_to_yaml(self):
+        """Reads problem1, creates an aborted solution and dumps the solution, which is validated
+        against malloovia schema"""
+        problems = util.read_problems_from_yaml(self.get_problem("problem1.yaml"))
+        assert "example" in problems
+        problem_phase_i = problems['example']
+
+        algorithm_stats =MallooviaStats(
+            gcd=False,
+            status=Status.aborted)
+
+        solving_stats = SolvingStats(
+            algorithm=algorithm_stats,
+            creation_time=0.3,
+            solving_time=200,
+            optimal_cost=None)
+
+        sol_i = SolutionI(
+            id='sol',
+            problem=problem_phase_i,
+            solving_stats=solving_stats,
+            allocation=None,
+            reserved_allocation=None)
 
         sol_i_yaml = util.solutions_to_yaml([sol_i])
         sol_i_dict = yaml.safe_load(sol_i_yaml)

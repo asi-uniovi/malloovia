@@ -439,6 +439,19 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         associated problem. The YAML uses anchors and references
         to tie up the different parts.
     """
+    def yamlize(value):
+        """Converts a python value to a valid YAML representation"""
+        if value is None:
+            return "null"
+
+        if value is True:
+            return "true"
+
+        if value is False:
+            return "false"
+
+        return value
+
     def solution_i_to_yaml(sol: SolutionI) -> List[str]:
         """Converts a SolutionI to a yaml string"""
         lines = []
@@ -449,10 +462,13 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         ))
         lines.append("  solving_stats:")
         lines.extend(solving_stats_to_yaml(sol.solving_stats, level=2))
+
         lines.append("  reserved_allocation:")
         lines.extend(reserved_allocation_to_yaml(sol.reserved_allocation, level=2))
+
         lines.append("  allocation:")
         lines.extend(allocation_to_yaml(sol.allocation, level=2))
+
         return lines
 
     def solution_ii_to_yaml(sol: SolutionII) -> List[str]:
@@ -487,7 +503,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines.extend((
             "{}creation_time: {}".format(tab, stats.creation_time),
             "{}solving_time: {}".format(tab, stats.solving_time),
-            "{}optimal_cost: {}".format(tab, stats.optimal_cost),
+            "{}optimal_cost: {}".format(tab, yamlize(stats.optimal_cost)),
             "{}algorithm:".format(tab),
             "  {}malloovia:".format(tab),
         ))
@@ -738,7 +754,6 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                 if include_repeats:
                     result["repeats"] = alloc.repeats[slot]
                 yield result
-
 
 __all__ = [
     'read_problems_from_yaml', 'read_problems_from_github',
