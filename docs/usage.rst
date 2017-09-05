@@ -77,11 +77,11 @@ Example:
             price: 10
             max_vms: 10
 
-Note that in Python the name of the variables wich store the data are not required to be the same than the internal ``id`` given to the corresponding objects.
+Note that in Python the name of the variables which store the data are not required to be the same than the internal ``id`` given to the corresponding objects.
 For example, the first region has the ``id`` "r1", while the python variable is called ``region1``.
 However, it is the name of the python variable what is used later to relate a particular ``InstanceClass`` with a previously created ``LimitingSet``.
 Also note that, since the ``limiting_sets`` field must contain a tuple, the weird syntax ``(zone1,)`` has to be used when that tuple has a single element.
-Whithout the comma inside the parenthesis, python would not parse correctly the value as a tuple.
+Without the comma inside the parenthesis, python would not parse correctly the value as a tuple.
 
 In the YAML format, however, each object has an "anchor", prefixed by ``&`` (e.g.: ``&r1``) which is used later to refer to that particular object when it is used as part of other objects (``*r1`` inside the instance class).
 In YAML, the names of the python variables are irrelevant, and the ``id``\ s are used instead to create those anchors and to refer to them.
@@ -253,7 +253,7 @@ To solve the problem:
 
     phase_i_solution = PhaseI(problem).solve()
 
-The time requierd to complete the solution depends on the length of the workloads, the number of different instance_classes, and the proximity of the optimal solution to the region/zone limits.
+The time required to complete the solution depends on the length of the workloads, the number of different instance_classes, and the proximity of the optimal solution to the region/zone limits.
 It can be as fast as a few seconds, or as long as several hours (perhaps days).
 
 You can influence the time in which the solution is found by passing a customized solver as parameter.
@@ -261,7 +261,7 @@ For example::
 
     phase_i_solution = PhaseI(problem).solve(solver=COIN(maxSeconds=30, fracGap=0.01))
 
-You need to use ``from pulp import COIN`` for this to work, and also have COIN-OR cbc binary installed in your system (see :ref:`installation <install>` for detalis).
+You need to use ``from pulp import COIN`` for this to work, and also have COIN-OR cbc binary installed in your system (see :ref:`installation <install>` for details).
 In this particular example we limit the solving time to 30 seconds,
 and set a "frac-gap" of 0.01, which means that the solver stops when the solution found is near (in a fraction of 0.01) to the best lower bound known.
 You can also pass the option ``threads=N`` to ``COIN()``, to use ``N`` cores in your machine (in this case the ``maxSeconds`` time is the divided by the number of threads).
