@@ -21,7 +21,7 @@ from .model import (System, Workload, App)
 
 LpProblem.bestBound = None   # Add new attribute to pulp problems
 
-class Malloovia:
+class MallooviaLp:
     """Solves the allocation problem, using Linear Programming.
 
     This class contains methods to create a linear programming problem
@@ -172,7 +172,7 @@ class Malloovia:
              for _l in self.load_hist.keys()
             ]), "Objective: minimize cost"
 
-    def create_problem(self) -> 'Malloovia':
+    def create_problem(self) -> 'MallooviaLp':
         """Creates the PuLP problem with all variables and restrictions.
 
         Returns:
@@ -479,10 +479,10 @@ def reorder_workloads(workloads: Sequence[Workload],
     return tuple(ordered_workloads)
 
 
-class MallooviaMaximizeTimeslotPerformance(Malloovia):
+class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
     """Find the allocation which maximizes performance for a single timeslot.
 
-    This problem is the dual of Malloovia. Instead of minimizing the cost
+    This problem is the dual of MallooviaLp. Instead of minimizing the cost
     while providing the minimum performances, the problem to solve now is
     to maximize the performance whithout breaking the limits.
 
@@ -512,7 +512,7 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
              for _l in self.load_hist.keys()
             ]), "Objective: maximize fulfilled workload fraction"
 
-    def create_problem(self) -> 'MallooviaMaximizeTimeslotPerformance':
+    def create_problem(self) -> 'MallooviaLpMaximizeTimeslotPerformance':
         """This method creates the PuLP problem, and calls other
         methods to add variables and restrictions to it.
         It initializes the attribute 'self.prob' with the
@@ -703,7 +703,7 @@ COIN_CMD.solve_CBC = _solve_CBC_patched
 
 
 __all__ = [
-    'Malloovia', 'get_load_hist_from_load',
-    'MallooviaMaximizeTimeslotPerformance'
+    'MallooviaLp', 'get_load_hist_from_load',
+    'MallooviaLpMaximizeTimeslotPerformance'
     ]
  

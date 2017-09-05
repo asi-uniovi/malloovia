@@ -6,8 +6,8 @@ import collections.abc
 from pulp import (PulpSolverError)
 
 from .lpsolver import (
-    Malloovia,
-    MallooviaMaximizeTimeslotPerformance
+    MallooviaLp,
+    MallooviaLpMaximizeTimeslotPerformance
 )
 from .solution_model import (
     SolvingStats, GlobalSolvingStats, MallooviaStats,
@@ -38,7 +38,7 @@ class PhaseI:
         self.problem = check_valid_problem(problem)
         self.__solution = None
         self.__full_solution = None
-        self._malloovia = None
+        self._malloovia_lp = None
         self.solving_stats = None
 
     def solve(self, gcd: bool=True, solver: Any=None, relaxed: bool=False) -> SolutionI:
@@ -56,20 +56,20 @@ class PhaseI:
         """
 
         # First creates the problem, then solves it
-        creation_time, self._malloovia = _create_problem(
+        creation_time, self._malloovia_lp = _create_problem(
             system=system_from_problem(self.problem),
             workloads=self.problem.workloads,
             relaxed=relaxed)
-        solving_time, malloovia_stats = _solve_problem(self._malloovia, gcd=gcd, solver=solver)
+        solving_time, malloovia_stats = _solve_problem(self._malloovia_lp, gcd=gcd, solver=solver)
 
         # Retrieve the solution and store it in a private property
         allocation = None
         reserved_allocation = None
         optimal_cost = None
         if malloovia_stats.status == Status.optimal:
-            allocation = self._malloovia.get_allocation()
-            reserved_allocation = self._malloovia.get_reserved_allocation()
-            optimal_cost = self._malloovia.get_cost()
+            allocation = self._malloovia_lp.get_allocation()
+            reserved_allocation = self._malloovia_lp.get_reserved_allocation()
+            optimal_cost = self._malloovia_lp.get_cost()
 
         solving_stats = SolvingStats(
             algorithm=malloovia_stats,
@@ -168,8 +168,8 @@ class PhaseII:
         # initially empty
         self._solutions = OrderedDict()
 
-        # Internal handle to the inner malloovia solver
-        self._malloovia = None
+        # Internal handle to the inner malloovia LP solver
+        self._malloovia_lp = None
 
     def solve_timeslot(self,
                        workloads: Sequence[Workload],
@@ -206,20 +206,20 @@ class PhaseII:
             solver = self.solver
 
         # Instantiate problem
-        creation_time, malloovia = _create_problem(
+        creation_time, malloovia_lp = _create_problem(
             system=system,
             workloads=workloads,
             preallocation=self.phase_i_solution.reserved_allocation,
             relaxed=False
         )
-        solving_time, malloovia_stats = _solve_problem(malloovia, gcd=False, solver=solver)
+        solving_time, malloovia_stats = _solve_problem(malloovia_lp, gcd=False, solver=solver)
 
         # Retrieve the solution and store it in a private property
         allocation = None
         optimal_cost = None
         if malloovia_stats.status == Status.optimal:
-            allocation = malloovia.get_allocation()
-            optimal_cost = malloovia.get_cost()
+            allocation = malloovia_lp.get_allocation()
+            optimal_cost = malloovia_lp.get_cost()
         else:
             sol = _solve_dual_problem(
                 system=system,
@@ -324,7 +324,7 @@ def _solve_dual_problem(system: System,
                         workloads: Sequence[Workload],
                         preallocation: ReservedAllocation,
                         solver: Any=None) -> SolutionI:
-    """Uses MallooviaMaximizeTimeslotPerformance to solve the dual problem
+    """Uses MallooviaLpMaximizeTimeslotPerformance to solve the dual problem
 
     Args:
         system: infrasctructure, apps and performance of the system
@@ -336,24 +336,24 @@ def _solve_dual_problem(system: System,
         in the timeslot.
     """
 
-    malloovia = MallooviaMaximizeTimeslotPerformance(
+    malloovia_lp = MallooviaLpMaximizeTimeslotPerformance(
         system=system,
         workloads=workloads,
         preallocation=preallocation,
         relaxed=False,        # TODO: Allow for relaxed in PhaseII?
     )
     start = time.perf_counter()
-    malloovia.create_problem()
+    malloovia_lp.create_problem()
     creation_time = time.perf_counter() - start
 
     solving_time, malloovia_stats = _solve_problem(
-        malloovia=malloovia,
+        malloovia_lp=malloovia_lp,
         gcd=False,
         solver=solver
     )
 
-    allocation = malloovia.get_allocation()
-    optimal_cost = malloovia.get_cost()
+    allocation = malloovia_lp.get_allocation()
+    optimal_cost = malloovia_lp.get_cost()
 
     solving_stats = SolvingStats(
         algorithm=malloovia_stats,
@@ -371,12 +371,12 @@ def _solve_dual_problem(system: System,
     )
 
 
-# Functions which interface with lpSolver.Malloovia to create and solve the problem
+# Functions which interface with lpSolver.MallooviaLp to create and solve the problem
 def _create_problem(system: System, workloads: Sequence[Workload],
                     preallocation: ReservedAllocation=None,
-                    relaxed: bool=False) -> Tuple[float, Malloovia]:
-    """Instantiates Malloovia class with the problem definition, and calls
-    :func:`Malloovia.create_problem()`.
+                    relaxed: bool=False) -> Tuple[float, MallooviaLp]:
+    """Instantiates MallooviaLp class with the problem definition, and calls
+    :func:`MallooviaLp.create_problem()`.
 
     Args:
         system: infrasctructure, apps and performance of the system
@@ -385,11 +385,11 @@ def _create_problem(system: System, workloads: Sequence[Workload],
         relaxed: whether the problem has to be created relaxed or integer.
 
     Returns:
-        The time required to create the problem, and the instance of Malloovia
+        The time required to create the problem, and the instance of MallooviaLp
         with the problem already created.
     """
     # Instantiate LP problem
-    _malloovia = Malloovia(
+    _malloovia_lp = MallooviaLp(
         system=system,
         workloads=workloads,
         preallocation=preallocation,
@@ -397,17 +397,17 @@ def _create_problem(system: System, workloads: Sequence[Workload],
 
     # Write the LP problem and measure the time required to create it
     start = time.perf_counter()
-    _malloovia.create_problem()
+    _malloovia_lp.create_problem()
     creation_time = time.perf_counter() - start
-    return creation_time, _malloovia
+    return creation_time, _malloovia_lp
 
-def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float, MallooviaStats]:
-    """Calls :func:`Malloovia.solve()` and retrieves statistics from the solver.
+def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[float, MallooviaStats]:
+    """Calls :func:`MallooviaLp.solve()` and retrieves statistics from the solver.
 
     Args:
-        mallovia: instance of Maloovia problem to solve (must be already created)
+        mallovia_lp: instance of MallooviaLp problem to solve (must be already created)
         gcd: whether the problem has to be solved with GCD method or not.
-        solver: the PuLP solver to be used by Malloovia.
+        solver: the PuLP solver to be used by MallooviaLp.
 
     Returns:
         The time required to create the problem, and the statistics from the solver."""
@@ -427,7 +427,7 @@ def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float,
     # Solve the problem and measure the time required
     start = time.perf_counter()
     try:
-        malloovia.solve(solver, use_mps=False)
+        malloovia_lp.solve(solver, use_mps=False)
     except PulpSolverError as exception:
         end = time.perf_counter()
         solving_time = end - start
@@ -438,10 +438,10 @@ def _solve_problem(malloovia: Malloovia, gcd: bool, solver: Any) -> Tuple[float,
         # No exceptions
         end = time.perf_counter()
         solving_time = end - start
-        status = pulp_to_malloovia_status(malloovia.pulp_problem.status)
+        status = pulp_to_malloovia_status(malloovia_lp.pulp_problem.status)
 
     if status == Status.aborted:
-        lower_bound = malloovia.pulp_problem.bestBound
+        lower_bound = malloovia_lp.pulp_problem.bestBound
 
     malloovia_stats = MallooviaStats(
         gcd=gcd,
