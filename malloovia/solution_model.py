@@ -25,7 +25,7 @@ class Status(IntEnum):
 
 
 def pulp_to_malloovia_status(status: int) -> Status:
-    """Receives a PuLP status code and returns a Mallovia :class:`Status`."""
+    """Receives a PuLP status code and returns a Malloovia :class:`Status`."""
     if status == pulp.LpStatusInfeasible:
         status = Status.infeasible
     elif status == pulp.LpStatusNotSolved:

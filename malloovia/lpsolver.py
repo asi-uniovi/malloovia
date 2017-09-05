@@ -345,8 +345,9 @@ class MallooviaLp:
         Raises:
             ValueError: when the problem is yet unsolved.
         """
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the cost of an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
+
         return pulp.value(self.pulp_problem.objective)
 
     def get_allocation(self) -> AllocationInfo:
@@ -359,8 +360,8 @@ class MallooviaLp:
             ValueError: if no solution is available (unsolved or infeasible problem)
         """
 
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the allocation for an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
 
         workload_tuples = []
         repeats = []
@@ -413,11 +414,11 @@ class MallooviaLp:
 
         # This is all the information required for PhaseII.
 
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the allocation for an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
 
         allocation = []
-        for _ in self.load_hist:  # Loop over all posible workloads
+        for _ in self.load_hist:  # Loop over all possible workloads
             workload_allocation = []
             for iclass in self.cooked.instances_res:
                 i_allocation = sum(

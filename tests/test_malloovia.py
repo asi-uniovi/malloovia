@@ -359,13 +359,16 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         solution = phaseI.solve()
 
         assert solution.solving_stats.algorithm.status == Status.infeasible
+
         # Trying to get the cost or the allocation should raise exception
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     assert phaseI._malloovia_lp.get_cost() > 0
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     assert phaseI._malloovia_lp.get_allocation() is None
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     assert phaseI._malloovia_lp.get_reserved_allocation() is None
+        with pytest.raises(ValueError, match="not optimal"):
+            phaseI._malloovia_lp.get_cost()
+
+        with pytest.raises(ValueError, match="not optimal"):
+            assert phaseI._malloovia_lp.get_allocation() is None
+
+        with pytest.raises(ValueError, match="not optimal"):
+            assert phaseI._malloovia_lp.get_reserved_allocation() is None
 
     def test_read_infeasible_problem2_and_solve_it_relaxed(self):
         """Solve problem2, which is infeasible even if relaxed"""
@@ -381,13 +384,14 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         phaseI.solve(relaxed=True)
         assert phaseI.solution.solving_stats.algorithm.status == Status.infeasible
 
-        # Trying to get the cost or the allocation should raise exception
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     assert phaseI._malloovia_lp.get_cost() > 0
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     phaseI._malloovia_lp.get_allocation()
-        # with pytest.raises(Exception, match="unsolved problem"):
-        #     assert phaseI._malloovia_lp.get_reserved_allocation() is None
+        with pytest.raises(Exception, match="not optimal"):
+            phaseI._malloovia_lp.get_cost()
+
+        with pytest.raises(Exception, match="not optimal"):
+            assert phaseI._malloovia_lp.get_allocation() is None
+
+        with pytest.raises(Exception, match="not optimal"):
+            assert phaseI._malloovia_lp.get_reserved_allocation() is None
 
     def test_read_problem3_and_solve_it(self):
         """Solve problem 3 which has optimal cost of 226"""
@@ -583,11 +587,11 @@ class TestMallooviaLpApi(PresetProblemPaths):
         lp.create_problem()
         # Trying to access the solution before it was solved, raises ValueError
         assert lp.get_status() == Status.unsolved
-        with pytest.raises(ValueError, match="unsolved problem"):
+        with pytest.raises(ValueError, match="not optimal"):
             lp.get_cost()
-        with pytest.raises(ValueError, match="unsolved problem"):
+        with pytest.raises(ValueError, match="not optimal"):
             lp.get_allocation()
-        with pytest.raises(ValueError, match="unsolved problem"):
+        with pytest.raises(ValueError, match="not optimal"):
             lp.get_reserved_allocation()
 
         lp.solve()
