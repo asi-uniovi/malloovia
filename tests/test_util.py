@@ -127,7 +127,7 @@ class TestUtilModule(PresetDataPaths):
         assert sol_ii.global_solving_stats.status == Status.optimal
         assert sol_ii.global_solving_stats.optimal_cost == 178
 
-        # It is neccessary to dump both solutions, because phase ii contains
+        # It is necessary to dump both solutions, because phase ii contains
         # a reference to the solution of phase i
         sol_ii_yaml = util.solutions_to_yaml([sol_i, sol_ii])
         sol_ii_dict = yaml.safe_load(sol_ii_yaml)

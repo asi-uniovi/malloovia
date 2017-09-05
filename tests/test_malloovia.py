@@ -167,7 +167,7 @@ class TestProblemCreation:
 
     def test_create_problem2_using_api(self):
         """Simple test (1region, 2inst, 2aps, 4timeslots),
-        infeasbile due to limiting sets"""
+        infeasible due to limiting sets"""
         # Only one region and two instances: one on-demand, other, reserved.
         # There are two apps and four time slots
 
@@ -301,7 +301,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         assert solution.reserved_allocation.vms_number[0] == 2
         assert solution.reserved_allocation.instance_classes == (i1,)
 
-        # The number of ondemand instances (i0) for app0, and workload index 0, should be 0
+        # The number of on-demand instances (i0) for app0, and workload index 0, should be 0
         workload_index = 0
         app0_index = solution.allocation.apps.index(app0)
         i0_index = solution.allocation.instance_classes.index(i0)
@@ -423,7 +423,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         assert solution.solving_stats.algorithm.status == Status.optimal
         assert solution.solving_stats.optimal_cost == 180
 
-        # Chech allocation is non integer
+        # Check allocation is non integer
         for row in solution.allocation.values:
             for app in row:
                 for num in app:
@@ -463,7 +463,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
 
     def test_unknown_error_in_pulp(self):
         """Load any problem and mock pulp so that it raises PulpError, to test
-        if maloovia handles correctly the exception"""
+        if malloovia handles correctly the exception"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
         problem_phase_i = problems['example']
@@ -633,8 +633,8 @@ class TestMallooviaLpApi(PresetProblemPaths):
         assert cost > 178
 
     def test_read_problem1_fixing_ondemand_vms(self):
-        """Solve problem 1, but forcing the number of ondemand VMS. This is not useful
-        in a real case, but Mallovia allows for it, and so this test covers that path."""
+        """Solve problem 1, but forcing the number of on-demand VMS. This is not useful
+        in a real case, but Malloovia allows for it, and so this test covers that path."""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
         problem_phase_i = problems['example']
@@ -656,7 +656,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
         lp.create_problem()
         lp.solve()
         allocation = lp.get_allocation()
-        # Check that the solution has 4 ondemand instances, for every timeslot as fixed
+        # Check that the solution has 4 on-demand instances, for every timeslot as fixed
         for timeslot in allocation.values:
             assert sum(app_vms[1] for app_vms in timeslot) == 4
 
@@ -682,7 +682,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
                 ondemand_index = i
         assert ondemand_index is not None
 
-        # Use it  to extract the number of ondemand VMs for each workload, per app
+        # Use it  to extract the number of on-demand VMs for each workload, per app
         on_demand_allocations_app0 = tuple(
             solution.allocation.values[t][0][ondemand_index]
             for t in range(len(solution.allocation.workload_tuples))
@@ -712,7 +712,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
 
             # Solve this problem with malloovia. Since the workloads are composed of
             # a single value, this is equivalent to solve a single timeslot
-            # If we fix to 6 the number of resreved instances, this emulates phaseII
+            # If we fix to 6 the number of reserved instances, this emulates phaseII
             lp = lpsolver.MallooviaLp(
                 system,
                 workloads,
@@ -744,7 +744,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
 
     def test_emulate_phase_ii_with_predictor(self):
         """Solve phaseI using malloovia and the full workload, then use malloovia again several
-        times to emulate phase II, passing 1 timeslot at time, using Omniscent predictor"""
+        times to emulate phase II, passing 1 timeslot at time, using Omniscient predictor"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
         problem = problems['example']
@@ -760,7 +760,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
                 ondemand_index = i
         assert ondemand_index is not None
 
-        # Use it  to extract the number of ondemand VMs for each workload, per app
+        # Use it  to extract the number of on-demand VMs for each workload, per app
         on_demand_allocations_app0 = tuple(
             solution.allocation.values[t][0][ondemand_index]
             for t in range(len(solution.allocation.workload_tuples))
@@ -777,11 +777,11 @@ class TestMallooviaLpApi(PresetProblemPaths):
         system = system_from_problem(problem)
 
         # Emulate phase II
-        predictor = phases.OmniscentSTWPredictor(problem.workloads)
+        predictor = phases.OmniscientSTWPredictor(problem.workloads)
         for workloads in predictor:
             # Solve this problem with malloovia. Since the workloads are composed of
             # a single value, this is equivalent to solve a single timeslot
-            # If we fix to 6 the number of resreved instances, this emulates phaseII
+            # If we fix to 6 the number of reserved instances, this emulates phaseII
             lp = lpsolver.MallooviaLp(
                 system=system,
                 workloads=workloads,

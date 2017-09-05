@@ -81,7 +81,7 @@ class MallooviaLp:
                 instead of integer ones.
         """
         self.system = system
-        # Ensure that the workloas received are ordered by the field app in the same
+        # Ensure that the workloads received are ordered by the field app in the same
         # ordering than the list system.apps
         self.workloads = reorder_workloads(workloads, system.apps)
         if preallocation is None:
@@ -298,7 +298,7 @@ class MallooviaLp:
         """Adds ``max_cores`` per limiting set restriction.
 
         If the limiting set provides a max_cores > 0, then the sum of all
-        instance cores among all instance classes whith are member of that
+        instance cores among all instance classes which are member of that
         limiting set should be limited to that maximum."""
         for cloud in self.cooked.limiting_sets:
             if cloud.max_cores == 0:
@@ -443,7 +443,7 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
         workloads: a sequence of :class:`Workload` objects, each one
             containing the fields ``app`` (which identifies the app producing this
             workload) and ``values`` (which stores a sequence of numbers representing
-            the workload for eatch timeslot for that app).
+            the workload for each timeslot for that app).
     Returns:
         A dictionary where the key is the workload for one timeslot,
         expressed as a tuple with one element for each application, and the value
@@ -485,9 +485,9 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
 
     This problem is the dual of MallooviaLp. Instead of minimizing the cost
     while providing the minimum performances, the problem to solve now is
-    to maximize the performance whithout breaking the limits.
+    to maximize the performance without breaking the limits.
 
-    The class inherits from Mallovia the initialization methods as well as
+    The class inherits from Malloovia the initialization methods as well as
     the ones to get the cost and allocation of the solution, but overrides
     the function to be optimized and some of the constraints.
     """
@@ -580,7 +580,7 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
                 for wl in self.load_hist.keys()
             )
 
-# The following function is used to monkeypatch part of PuLP code.
+# The following function is used to monkey patch part of PuLP code.
 # This modification is aimed to get the value of the optimal best bound
 # which is provided by CBC solver as part of the solution, even if
 # the solution could not be found due to a time limit
@@ -699,7 +699,7 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
     return lp.status
 
 
-# Monkeypatching
+# Monkey patching
 COIN_CMD.solve_CBC = _solve_CBC_patched
 
 

@@ -131,7 +131,7 @@ ReservedAllocation.instance_classes.__doc__ = """\
         in the allocation."""
 ReservedAllocation.vms_number.__doc__ = """\
     List[float]: list of numbers, representing the number of instance classes
-        to be rerved of each type. The corresponding instance class is obtained
+        to be reserved of each type. The corresponding instance class is obtained
         from the ``instance_classes`` attribute using the same index."""
 
 
@@ -155,7 +155,7 @@ AllocationInfo.values.__doc__ = """\
         for application 1 during the timseslot 2.
 
         Note that, if the allocation contains a single timeslot, it is still
-        neccesary to specify the index (0) in the first dimension,
+        necessary to specify the index (0) in the first dimension,
         e.g. ``vms_number[0][1][3]``.
 
         To match the indexes in those arrays to actual instance classes and
@@ -167,7 +167,7 @@ AllocationInfo.values.__doc__ = """\
 AllocationInfo.units.__doc__ = """\
     str: a string identifying the kind of information stored in the ``values``
         field. It can be ``"vms"`` (number of VM instances), ``"cost"`` or any
-        divise (cost of these instances) or ``"rph"`` (performance of these
+        currency (cost of these instances) or ``"rph"`` (performance of these
         instances)."""
 AllocationInfo.apps.__doc__ = """\
     Sequence[:class:`App`]: is a list of apps to give meaning to the second

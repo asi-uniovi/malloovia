@@ -94,7 +94,7 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
     ids_to_objects = {}
 
     def create_if_neccesary(_class, _dict):
-        """Auxiliar function to instantiate a new object from a dict only
+        """Auxiliary function to instantiate a new object from a dict only
         if the same dict was not already instantiated"""
         # If already created, return the stored object
         if id(_dict) in ids_to_objects:
@@ -277,7 +277,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         """Returns an array of lines to add to the yaml array, representing the
         Workloads part"""
         lines = []
-        # It is neccesary to remove "filename" if it is None, or "values" if not
+        # It is necessary to remove "filename" if it is None, or "values" if not
         # But fields cannot be removed from namedtuples, so we convert it to dict
         lines.append("Workloads:")
         for w_l in sorted(workloads):
@@ -327,7 +327,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         return lines
 
     # "main" body of the function
-    yam = []                  # Lisf of lines of the resulting yaml
+    yam = []                  # List of lines of the resulting yaml
     apps = set()              # set of App objects indirectly referenced from the problems
                               #   (via the workloads)
     workloads = set()         # set of Workload objects directly referenced from the problems
@@ -676,7 +676,7 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
         * AllocationInfo.units -> value for this particular allocation. If the units is "vms",
           the value represents the number of VMs of the kind "instance_class" to be activated
           during timeslot "timeslot" (in phase II), or when the workload is "workload" (in
-          phase I), for the appplication "app".
+          phase I), for the application "app".
 
     Some of these fields are useful only for Phase I, while others are for Phase II. Some
     boolean arguments allow the selection of these specific fields.

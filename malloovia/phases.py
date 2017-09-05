@@ -100,10 +100,10 @@ class STWPredictor(collections.abc.Iterable):
     """Abstract base class for short-term workload predictors"""
 
     # It is abstract because it does not implements __iter__
-    # Any attepmt to instantiate this class will produce a run-time error
+    # Any attempt to instantiate this class will produce a run-time error
     pass
 
-class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
+class OmniscientSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
     """Concrete implementation of STWP_Predictor which knows in advance the STWP for
     all timeslots in the future.
 
@@ -261,7 +261,7 @@ class PhaseII:
 
         Args:
             predictor: a generator which yields one prediction tuple per timeslot.
-                If ``None``, a default :class:`OmniscentSTWPredictor` is instantiated
+                If ``None``, a default :class:`OmniscientSTWPredictor` is instantiated
                 which iterates over the Problem.workloads values.
 
         Returns:
@@ -271,7 +271,7 @@ class PhaseII:
 
         system = system_from_problem(self.problem)
         if predictor is None:
-            predictor = OmniscentSTWPredictor(self.problem.workloads)
+            predictor = OmniscientSTWPredictor(self.problem.workloads)
         solutions = []
         for workloads in predictor:
             solutions.append(self.solve_timeslot(system=system, workloads=workloads))
@@ -327,9 +327,9 @@ def _solve_dual_problem(system: System,
     """Uses MallooviaLpMaximizeTimeslotPerformance to solve the dual problem
 
     Args:
-        system: infrasctructure, apps and performance of the system
+        system: infrastructure, apps and performance of the system
         workloads: list of workloads, one per app
-        preallocation: allocation for reserverd instances, from phase I, or None
+        preallocation: allocation for reserved instances, from phase I, or None
 
     Returns:
         A :class:`SolutionI` object with the solution which maximizes performance
@@ -379,9 +379,9 @@ def _create_problem(system: System, workloads: Sequence[Workload],
     :func:`MallooviaLp.create_problem()`.
 
     Args:
-        system: infrasctructure, apps and performance of the system
+        system: infrastructure, apps and performance of the system
         workloads: list of workloads, one per app
-        preallocation: allocation for reserverd instances, from phase I, or None
+        preallocation: allocation for reserved instances, from phase I, or None
         relaxed: whether the problem has to be created relaxed or integer.
 
     Returns:
@@ -405,7 +405,7 @@ def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[f
     """Calls :func:`MallooviaLp.solve()` and retrieves statistics from the solver.
 
     Args:
-        mallovia_lp: instance of MallooviaLp problem to solve (must be already created)
+        malloovia_lp: instance of MallooviaLp problem to solve (must be already created)
         gcd: whether the problem has to be solved with GCD method or not.
         solver: the PuLP solver to be used by MallooviaLp.
 
@@ -452,4 +452,4 @@ def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[f
     return solving_time, malloovia_stats
 
 
-__all__ = ['PhaseI', 'PhaseII', 'STWPredictor', 'OmniscentSTWPredictor']
+__all__ = ['PhaseI', 'PhaseII', 'STWPredictor', 'OmniscientSTWPredictor']
