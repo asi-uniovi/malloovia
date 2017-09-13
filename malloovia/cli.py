@@ -15,21 +15,21 @@ from .util import (
     solutions_to_yaml
 )
 from .phases import (
-    PhaseI, PhaseII, OmniscentSTWPredictor
+    PhaseI, PhaseII, OmniscientSTWPredictor
 )
 
 yaml = ruamel.yaml.YAML(typ='safe')
 yaml.safe_load = yaml.load
 
 
-class OmniscentProgressSTWPredictor(OmniscentSTWPredictor):
-    """Adds a progress bar to an OmniscentSTWPredictor"""
+class OmniscientProgressSTWPredictor(OmniscientSTWPredictor):
+    """Adds a progress bar to an OmniscientSTWPredictor"""
     def __iter__(self):
         progress_bar = ShadyBar(
             "Solving Phase II", max=self.timeslots/10, width=60,
             suffix='%(percent).1f%% - ETA: %(eta_td)s')
         count = 0
-        for k in OmniscentSTWPredictor.__iter__(self):
+        for k in OmniscientSTWPredictor.__iter__(self):
             yield k
             count = (count + 1) % 10
             if count == 0:
@@ -198,7 +198,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
             solver = None
         click.echo("Solving phase II...", nl=False)
         t_ini = time.process_time()
-        progress_predictor = OmniscentProgressSTWPredictor(prob2.workloads)
+        progress_predictor = OmniscientProgressSTWPredictor(prob2.workloads)
         solution2 = PhaseII(prob2, solution1, solver=solver).solve_period(progress_predictor)
         click.echo("({:.3f}s)".format(time.process_time()-t_ini))
         solutions.append(solution2)
