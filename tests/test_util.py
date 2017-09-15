@@ -5,7 +5,8 @@ from jsonschema import validate
 
 from malloovia import util
 from malloovia import phases
-from malloovia.solution_model import Status, SolvingStats, SolutionI, MallooviaStats
+from malloovia import Problem
+from malloovia.solution_model import Status, SolvingStats, SolutionI, SolutionII, MallooviaStats
 from .datapaths import PresetDataPaths
 
 yaml = ruamel.yaml.YAML(typ='safe')
@@ -150,3 +151,23 @@ class TestUtilModule(PresetDataPaths):
         assert len(problem.workloads) == 2
         assert problem.workloads[0].values == (30, 32, 30, 30)
         assert problem.workloads[1].values == (1003, 1200, 1194, 1003)
+
+    def test_read_solution_from_file(self):
+        filename = self.get_valid('problems_plus_solutions_with_allocation.yaml')
+        solutions = util.read_solutions_from_yaml(filename)
+
+        assert len(solutions) == 2
+
+        sol_phase_i = solutions['solution_phase_I']
+        sol_phase_ii = solutions['solution_phase_II']
+
+        assert type(sol_phase_ii) is SolutionII
+        assert sol_phase_ii.solving_stats[1]['optimal_cost'] == 0.23
+        assert len(sol_phase_ii.allocation['apps']) == 2
+        assert sol_phase_ii.allocation['apps'][0].name == 'Web server'
+        assert sol_phase_i.allocation['apps'][1].name == 'Database'
+        assert sol_phase_ii.allocation['instance_classes'][1].name == 'm4.medium'
+        assert sol_phase_i.reserved_allocation['instance_classes'][0].name == 'm3.large'
+        assert sol_phase_i.reserved_allocation['vms_number'][0] == 20
+        assert type(sol_phase_ii.problem) is Problem
+        assert sol_phase_ii.previous_phase is sol_phase_i
