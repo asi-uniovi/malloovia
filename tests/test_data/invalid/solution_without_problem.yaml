@@ -17,9 +17,6 @@ Solutions:
         max_seconds: 300
         lower_bound: null
   reserved_allocation:
-    # Una allocation nos dice cuántas instancias de cada tipo
-    # comprar para todo el año.
-    # Sólo aparece ic1 porque es la única reservada
     instance_classes: [*ic1]
     vms_number: [20]
 
@@ -75,7 +72,6 @@ Solutions:
     solving_time: 300
     optimal_cost: 123.1
 
-  # Alternativa: una especie de tabla pandas que separe índices, nombres de columna y valores
   allocation:
     apps: [*App1, *App2]
     instance_classes: [*ic1, *ic2, *ic3]
