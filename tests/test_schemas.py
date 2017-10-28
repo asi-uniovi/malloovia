@@ -21,20 +21,11 @@ class TestValidateSchemas(PresetDataPaths):
         schema = yaml.safe_load(open(self.get_schema("malloovia.schema.yaml")))
         Draft4Validator.check_schema(schema)
 
-    def test_validate_problem_schema_against_meta_schema(self):
-        """Validates problem.schema"""
-        schema = yaml.safe_load(open(self.get_schema("problem.schema.yaml")))
-        Draft4Validator.check_schema(schema)
 
 
 
 class TestValidateExamples(PresetDataPaths):
     # Next validate different yaml files against the schemas
-    def test_problem_against_schema(self):
-        """Validates (valid) problem example with internal YAML references"""
-        yaml_schema = yaml.safe_load(open(self.get_schema("problem.schema.yaml")))
-        data = yaml.safe_load(open(self.get_valid("problem_example.yaml")))
-        validate(data, yaml_schema)
 
     def test_problem_against_mallovia_schema(self):
         """Validates (valid) example problem against malloovia schema"""

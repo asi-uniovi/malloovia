@@ -164,7 +164,8 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
             if ic_object not in perf_dict:
                 perf_dict[ic_object] = {}
             perf_dict[ic_object][app_object] = float(value)
-        perf = PerformanceSet(id=_dict["id"], values=PerformanceValues(perf_dict))
+        perf = PerformanceSet(id=_dict["id"], values=PerformanceValues(perf_dict),
+                              time_unit=_dict["time_unit"])
         ids_to_objects[id(_dict)] = perf
         return perf
 
@@ -319,6 +320,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         for perfset in sorted(performances):
             lines.append("  - &{}".format(perfset.id))
             lines.append("    id: {}".format(perfset.id))
+            lines.append("    time_unit: {}".format(perfset.time_unit))
             lines.append("    values:")
             for iclass, app, perf in perfset.values:
                 lines.append("      - instance_class: *{}".format(iclass.id))

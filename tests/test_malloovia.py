@@ -35,16 +35,18 @@ class TestProblemCreation:
         "Detect mismatch in workload lengths"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
+             price=10, time_unit="h")
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194)
-            )
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32), time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 instance: {app0: 10, app1: 500},
                 })
@@ -63,18 +65,21 @@ class TestProblemCreation:
         "Detect when the performance for one instance_class is missing"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance1 = InstanceClass(
-            "Instance1", name="Instance1", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance1", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
+             price=10, time_unit="h")
         instance2 = InstanceClass(
-            "Instance2", name="Instance2", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance2", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
+             price=10, time_unit="h")
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 34)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194)
-            )
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 40), time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 instance1: {app0: 10, app1: 500},
                 # Wrong, instance2 performance is missing
@@ -96,17 +101,21 @@ class TestProblemCreation:
         "Detect when the performance for one app is missing"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance1 = InstanceClass(
-            "Instance1", name="Instance1", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance1", name="Instance1", limiting_sets=(limiting_set,), price=10, max_vms=10,
+            time_unit="h")
         instance2 = InstanceClass(
-            "Instance2", name="Instance2", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance2", name="Instance2", limiting_sets=(limiting_set,), price=10, max_vms=10,
+            time_unit="h")
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 34)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194))
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 34), time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 instance1: {app0: 10, app1: 500},
                 instance2: {app0: 10} # Error, missing app1
@@ -134,18 +143,22 @@ class TestProblemCreation:
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20)
 
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, price=10)
+            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, price=10,
+            time_unit="h")
         m3large_r = InstanceClass(
             "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, price=7,
-            is_reserved=True)
+            time_unit="h", is_reserved=True)
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003))
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
+                     time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 m3large: {app0: 10, app1: 500},
                 m3large_r: {app0: 10, app1: 500}
@@ -179,18 +192,22 @@ class TestProblemCreation:
         # No limit for m3large (max_vms=0), for better testing coverage
         # This lack of limit does not make the problem feasible, due to the limiting_set
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=0, price=10)
+            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=0, price=10,
+            time_unit="h")
         m3large_r = InstanceClass(
             "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, price=7,
-            is_reserved=True)
+            time_unit="h", is_reserved=True)
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003))
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
+                     time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 m3large: {app0: 10, app1: 500},
                 m3large_r: {app0: 10, app1: 500}
@@ -220,18 +237,22 @@ class TestProblemCreation:
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20, max_cores=10)
 
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=2, price=10)
+            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=2, price=10,
+            time_unit="h")
         m3large_r = InstanceClass(
             "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, cores=4, price=7,
-            is_reserved=True)
+            time_unit="h", is_reserved=True)
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003))
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
+                     time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 m3large: {app0: 10, app1: 500},
                 m3large_r: {app0: 10, app1: 500}
@@ -267,16 +288,18 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         region = LimitingSet("Cloud1", name="Cloud1", max_vms=max_instances)
         i0 = InstanceClass(
             "ondemand", name="On Demand", price=base_price, limiting_sets=(region,),
-            max_vms=max_instances, is_reserved=False)
+            max_vms=max_instances, is_reserved=False, time_unit="h")
         i1 = InstanceClass(
             "reserved", name="Reserved", price=0.8*base_price, limiting_sets=(region,),
-            max_vms=max_instances, is_reserved=True)
+            max_vms=max_instances, is_reserved=True, time_unit="h")
         app0 = App("App0", name="App0")
         workloads = (
-            Workload("ltwp", description="Test", app=app0, values=(2*performance,)*period_in_hours),
+            Workload("ltwp", description="Test", app=app0, values=(2*performance,)*period_in_hours,
+                     time_unit="h"),
         )
         performances = PerformanceSet(
             id="perfs",
+            time_unit="h",
             values=PerformanceValues({
                 i0: {app0: performance},
                 i1: {app0: performance}
@@ -435,9 +458,9 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
 
         # Use larger workloads (200 timeslots, random values)
         workloads = (
-            Workload("wl_app0", description="Test", app=app0,
+            Workload("wl_app0", description="Test", app=app0, time_unit="h",
                     values=tuple(random.randint(25, 35) for i in range(200))),
-            Workload("wl_app1", description="Test", app=app1,
+            Workload("wl_app1", description="Test", app=app1, time_unit="h",
                     values=tuple(random.randint(990, 1200) for i in range(200)))
         )
 
@@ -482,18 +505,22 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         amazon_dem = LimitingSet("Cloud1", name="Cloud1", max_vms=20, max_cores=15)
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20, max_cores=10)
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=4, price=10)
+            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=4, price=10,
+            time_unit="h")
         m3large_r = InstanceClass(
-            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, cores=4, price=7,
-            is_reserved=True)
+            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, cores=4,
+            price=7, time_unit="h", is_reserved=True)
         app0 = App("app0", "Test app0")
         app1 = App("app1", "Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003))
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
+                     time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 m3large: {app0: 10, app1: 500},
                 m3large_r: {app0: 10, app1: 500}
@@ -517,16 +544,18 @@ class TestMallooviaApi(PresetProblemPaths):
     def test_invalid_problem_missing_performance(self):
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10,
+            time_unit="h")
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 44)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194)
-            )
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 44), time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 instance: {app0: 10, },  # Missing app1 performance
                 })
@@ -547,16 +576,18 @@ class TestMallooviaApi(PresetProblemPaths):
     def test_invalid_problem_missing_workload_value(self):
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10)
+            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10,
+            time_unit="h")
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32,)),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194)
-            )
+            Workload("wl_app0", description="Test", app=app0, values=(30, 32,), time_unit="h"),
+            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
+                     time_unit="h")
         )
         performances = PerformanceSet(
             id="test_perfs",
+            time_unit="h",
             values=PerformanceValues({
                 instance: {app0: 10, app1: 20},  # Missing app1 performance
                 })
@@ -702,8 +733,8 @@ class TestMallooviaApi(PresetProblemPaths):
             # against this ordering (it should be invariant because each workload
             # includes an app field to relate it to the apps)
             workloads = (
-                Workload("wl_app1", description="Test", app=app1, values=(wl1,)),
-                Workload("wl_app0", description="Test", app=app0, values=(wl0,)),
+                Workload("wl_app1", description="Test", app=app1, values=(wl1,), time_unit="h"),
+                Workload("wl_app0", description="Test", app=app0, values=(wl0,), time_unit="h"),
             )
 
             # Solve this problem with malloovia. Since the workloads are composed of
@@ -861,8 +892,10 @@ class TestPhaseII(PresetProblemPaths):
         app0, app1 = (wl.app for wl in problem.workloads)
         phase_ii_problem = problem._replace(
             workloads = (
-                Workload("wl_app0", description="Test", app=app0, values=(30, 270, 30, 30)),
-                Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003))
+                Workload("wl_app0", description="Test", app=app0, values=(30, 270, 30, 30),
+                         time_unit="h"),
+                Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                         time_unit="h")
             )
         )
 
@@ -907,7 +940,8 @@ class TestModelClasses(PresetProblemPaths):
         assert str(hist) == "MallooviaHistogram with 3 values"
 
     def test_PerformanceValues(self):
-        instances = [InstanceClass(id="ic%d"%i, name=None, limiting_sets=None, max_vms=0, price=1)
+        instances = [InstanceClass(id="ic%d"%i, name=None, limiting_sets=None, max_vms=0, 
+                                   price=1, time_unit="h")
                      for i in range(3)]
         apps = [App(id="app%d"%i, name="App %d" % i)
                 for i in range(2)]
@@ -930,6 +964,7 @@ class TestModelClasses(PresetProblemPaths):
         values_copy = copy.deepcopy(values)
         assert values == values_copy
         assert values != 0
+
     def test_Allocation_functions(self):
         # Read a problem to get instance class data
         problems = util.read_problems_from_yaml(self.problems["problem1"])

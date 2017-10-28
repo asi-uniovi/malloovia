@@ -100,7 +100,7 @@ Problem.description.__doc__ = "str: optional description for the problem."
 
 Workload = _namedtuple_with_defaults(            # pylint: disable=invalid-name
     "Workload",
-    ["id", "description", "values", "app"],
+    ["id", "description", "values", "app", "time_unit"],
     intra_slot_distribution="uniform",
     filename=None)
 """Workload prediction for one application."""
@@ -111,6 +111,8 @@ Workload.values.__doc__ = """\
         It can store also a single value if it is the short-term workload
         prediction, but even in this case it must be a tuple (with
         a single element)."""
+Workload.time_unit.__doc__ = """\
+    string: length of the timeslot used in values ("y", "h", "m", or "s")."""
 Workload.app.__doc__ = """\
     :class:`App`: The application which generates this workload."""
 Workload.intra_slot_distribution.__doc__ = """\
@@ -123,7 +125,7 @@ Workload.filename.__doc__ = """\
 
 InstanceClass = _namedtuple_with_defaults(       # pylint: disable=invalid-name
     "InstanceClass",
-    ["id", "name", "limiting_sets", "max_vms", "price"],
+    ["id", "name", "limiting_sets", "max_vms", "price", "time_unit"],
     is_reserved=False,
     cores=1)
 """InstanceClass characterization."""
@@ -142,6 +144,8 @@ InstanceClass.max_vms.__doc__ = """\
         The value 0 means "no limit"."""
 InstanceClass.price.__doc__ = """\
     float: price per timeslot of this instance class."""
+InstanceClass.time_unit.__doc__ = """\
+    string: length of the timeslot used in price ("y", "h", "m", or "s")."""
 InstanceClass.is_reserved.__doc__ = """\
     bool: True if this instance class is reserved (defaults to False)."""
 InstanceClass.cores.__doc__ = """\
@@ -170,13 +174,15 @@ App.name.__doc__ = "str: name of the app."
 
 PerformanceSet = _namedtuple_with_defaults(      # pylint: disable=invalid-name
     "PerformanceSet",
-    ["id", "values"]
+    ["id", "values", "time_unit"]
 )
 """Stores the performance of each pair (app, instance class)."""
 PerformanceSet.id.__doc__ = "str: arbitrary id for the PerformanceSet object."
 PerformanceSet.values.__doc__ = """\
     :class:`PerformanceValues`: storage of the performance values per app
         and instance class."""
+PerformanceSet.time_unit.__doc__ = """\
+    string: length of the timeslot used in performance values ("y", "h", "m", or "s")."""
 
 
 System = _namedtuple_with_defaults(             # pylint: disable=invalid-name

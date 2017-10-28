@@ -16,6 +16,7 @@ Instance_classes:
     max_vms: 20
     is_reserved: true
     price: 2.3
+    time_unit: h
   - &ic2
     id: ic2
     name: m4.medium
@@ -23,6 +24,7 @@ Instance_classes:
     max_vms: 5
     is_reserved: false
     price: 4.4
+    time_unit: h
   - &ic3
     id: ic3
     name: m4.large
@@ -30,6 +32,7 @@ Instance_classes:
     max_vms: 5
     is_reserved: false
     price: 8.2
+    time_unit: h
 
 Apps:
   - &App1
@@ -43,6 +46,7 @@ Workloads:
   - &ltwp_app1
     id: ltwp_app1
     description: Randomly generated
+    time_unit: h
     values: [1,22,5,6,10,20,50,20]
     intra_slot_distribution: uniform
     app: *App1
@@ -51,6 +55,7 @@ Workloads:
     id: ltwp_app2
     description: Randomly generated
     values: [30,2,3,123,12,213,12,3]
+    time_unit: h
     intra_slot_distribution: poisson
     app: *App2
 
@@ -58,6 +63,7 @@ Workloads:
     id: stwp_app1
     description: Randomly generated, similar to ltwp_app1
     values: [1,22,5,6,12,20,50,19]
+    time_unit: h
     intra_slot_distribution: uniform
     app: *App1
 
@@ -65,6 +71,7 @@ Workloads:
     id: stwp_app2
     description: Randomly generated, similar to ltwp_app2
     values: [30,2,3,120,15,210,10,4]
+    time_unit: h
     intra_slot_distribution: poisson
     app: *App2
 
@@ -72,6 +79,7 @@ Workloads:
 Performances:
   - &Performance1
     id: Performance1
+    time_unit: h
     values:
       - instance_class: *ic1
         app: *App1

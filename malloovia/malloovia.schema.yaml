@@ -27,6 +27,10 @@ definitions:
       type: string
       enum: [uniform, poisson, normal]
       default: uniform
+  timeUnit:
+      type: string
+      enum: [y,h,m,s]
+      default: h
 
   # Some enumerates for solution status
   status:
@@ -61,13 +65,14 @@ definitions:
       id: {type: string}
       name: {type: string}
       price: {type: number}
+      time_unit: {$ref: "#/definitions/timeUnit"}
       is_reserved: {type: boolean}
       max_vms: {$ref: "#/definitions/nonNegativeInteger"}
       cores: {$ref: "#/definitions/positiveIntegerDefault1"}
       limiting_sets:
         type: array
         items: {$ref: "#/definitions/Limiting_set"}
-    required: [id, name, max_vms, price, is_reserved, limiting_sets]
+    required: [id, name, max_vms, price, time_unit, is_reserved, limiting_sets]
     additionalProperties: false
 
   Workload:
@@ -76,12 +81,13 @@ definitions:
       id: {type: string}
       app: {$ref: "#/definitions/App"}
       description: {type: string}
+      time_unit: {$ref: "#/definitions/timeUnit"}
       filename: {type: string}
       intra_slot_distribution: {$ref: "#/definitions/statisticalDistribution"}
       values:
         type: array
         items: {type: number}
-    required: [id, app]
+    required: [id, app, time_unit]
     oneOf:
     - required: [values]
     - required: [filename]
@@ -100,10 +106,11 @@ definitions:
     type: object
     properties:
       id: {type: string}
+      time_unit: {$ref: "#/definitions/timeUnit"}
       values:
         type: array
         items: {$ref: "#/definitions/PerformanceValue"}
-    required: [id, values]
+    required: [id, time_unit, values]
     additionalProperties: false
 
   Problem:

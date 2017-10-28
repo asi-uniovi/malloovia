@@ -128,7 +128,8 @@ class OmniscentSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,to
 
     def __iter__(self):
         return (      # Generator expression
-            tuple(Workload(id=None, description=None, values=(w.values[i],), app=w.app)
+            tuple(Workload(id=None, description=None, values=(w.values[i],),
+                           time_unit=w.time_unit, app=w.app)
                   for w in self.stwp)
             for i in range(self.timeslots)
         )

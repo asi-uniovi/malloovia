@@ -17,6 +17,7 @@ Instance_classes:
     limiting_sets: [*Cloud1]
     max_vms: 20
     price: 10
+    time_unit: h
     is_reserved: false
     cores: 2
   - &m3large_r
@@ -25,6 +26,7 @@ Instance_classes:
     limiting_sets: [*CloudR]
     max_vms: 20
     price: 7
+    time_unit: h
     is_reserved: true
     cores: 4
 
@@ -41,18 +43,21 @@ Workloads:
     id: wl_app0
     description: Test
     values: [30, 32, 30, 30]
+    time_unit: h
     app: *app0
     intra_slot_distribution: uniform
   - &wl_app1
     id: wl_app1
     description: Test
     values: [1003, 1200, 1194, 1003]
+    time_unit: h
     app: *app1
     intra_slot_distribution: uniform
 
 Performances:
   - &test_perfs
     id: test_perfs
+    time_unit: h
     values:
       - instance_class: *m3large
         app: *app0
