@@ -365,10 +365,67 @@ class PerformanceValues(object):                 # pylint: disable=R0903
                 for ic in sorted(perfs)
                 for app in sorted(perfs[ic]))
 
+class TimeUnit:
+    """Provides a simple method to perform time units conversions.
+
+    It stores as a class attribute a dictionary whose keys are strings representing the time units
+    (eg: "h", "m", "s") and the values are the factor to convert one into another.
+    The value for "s" is 1, for "m" it would be 60, etc.
+
+    Inheritance can be used to extend the known time units. You have however to rewrite the
+    whole dictionary plus the new units in the derived class."""
+
+    conversion_factors = {
+        "s": 1,
+        "m": 60,
+        "h": 60*60,
+        "d": 24*60*60,
+        "y": 365*24*60*60
+    }
+
+    def __init__(self, unit:str, amount: float=1) -> None:
+        """Creates a TimeUnit for the given unit.
+
+        Args:
+            unit: The string representing the time unit, e.g. "h" for hours
+            amount: Amount of time units, defaults to 1.
+
+        Raises:
+            ValueError: if the string does not represent a known time unit
+        """
+        self.check_valid_unit(unit)
+        self.unit = unit
+        self.amount = amount
+
+    def to(self, to_unit):
+        """Convert this time unit into a different time unit.
+
+        Args:
+            to_unit: string representing the time unit to which convert, e.g. "s" for seconds
+
+        Returns:
+            The number of units of type "to_unit" in the time "self.unit". For example,
+            TimeUnit("h").to("s") will return 3600.
+        Raises:
+            ValueError if "to_unit" is not a known time unit.
+        """
+        self.check_valid_unit(to_unit)
+        return self.amount * self.conversion_factors[self.unit]/self.conversion_factors[to_unit]
+
+    @classmethod
+    def check_valid_unit(cls, unit):
+        """Checks the validity of the time unit, by looking it up in the keys of
+        the class attribute conversion_factors. Note that this allows for using inheritance
+        to extend the list of known time units."""
+        if unit not in cls.conversion_factors.keys():
+            raise ValueError("Unit {} is not valid. Use one of {}".format(
+                repr(unit), list(cls.conversion_factors.keys())))
+
 
 __all__ = [
     'Workload', 'App', 'InstanceClass', 'LimitingSet',
     'PerformanceSet', 'PerformanceValues',
     'Problem', 'check_valid_problem',
-    'System', 'system_from_problem'
+    'System', 'system_from_problem',
+    'TimeUnit'
 ]
