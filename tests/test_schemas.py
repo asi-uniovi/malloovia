@@ -15,7 +15,7 @@ yaml.safe_load = yaml.load
 # pylint: disable=invalid-name
 
 class TestValidateSchemas(PresetDataPaths):
-    # First validate the schemas themselved
+    # First validate the schemas themselves
     def test_validate_malloovia_schema_against_meta_schema(self):
         """Validates malloovia.schema"""
         schema = yaml.safe_load(open(self.get_schema("malloovia.schema.yaml")))
@@ -36,7 +36,7 @@ class TestValidateExamples(PresetDataPaths):
         data = yaml.safe_load(open(self.get_valid("problem_example.yaml")))
         validate(data, yaml_schema)
 
-    def test_problem_against_mallovia_schema(self):
+    def test_problem_against_malloovia_schema(self):
         """Validates (valid) example problem against malloovia schema"""
         yaml_schema = yaml.safe_load(open(self.get_schema("malloovia.schema.yaml")))
         data = yaml.safe_load(open(self.get_valid("problem_example.yaml")))
@@ -49,8 +49,8 @@ class TestValidateExamples(PresetDataPaths):
         data = yaml.safe_load(open(self.get_valid("problem_example_external_workload.yaml")))
         validate(data, yaml_schema)
 
-    def test_problems_plus_solutions_example_against_mallovia_schema(self):
-        """Validates (valid) yaml file wich contains both some problems and their
+    def test_problems_plus_solutions_example_against_malloovia_schema(self):
+        """Validates (valid) yaml file which contains both some problems and their
         solutions in the same file"""
         yaml_schema = yaml.safe_load(open(self.get_schema("malloovia.schema.yaml")))
         data = yaml.safe_load(open(self.get_valid("problems_plus_solutions_example.yaml")))

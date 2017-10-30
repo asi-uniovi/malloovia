@@ -89,7 +89,7 @@ This will also install other packages that are required by Malloovia.
 Linear programming solver
 ---------------------------------------------
 
-Mallovia uses `PuLP <https://pythonhosted.org/PuLP/>`_ as Linear Programming modelling language
+Malloovia uses `PuLP <https://pythonhosted.org/PuLP/>`_ as Linear Programming modeling language
 and as interface to several solvers. It is a python library which is installed as part of the
 installation above. PuLP allows the creation of files describing the problem
 (using .lp or .mps formats) from Python, and provides a consistent interface with different
