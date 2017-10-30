@@ -567,11 +567,9 @@ class TestMallooviaApi(PresetProblemPaths):
             instance_classes=(instance,),
             performances=performances
         )
-        # No error is detected in the constructor
-        lp = lpsolver.Malloovia(system, workloads)
-        # But then create_problem wont work
+        # Error is detected in the constructor
         with pytest.raises(KeyError):
-            lp.create_problem()
+            lp = lpsolver.Malloovia(system, workloads)
 
     def test_invalid_problem_missing_workload_value(self):
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)

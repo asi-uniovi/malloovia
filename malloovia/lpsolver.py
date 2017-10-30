@@ -17,7 +17,7 @@ from .solution_model import (
     MallooviaHistogram, ReservedAllocation, AllocationInfo,
     Status, pulp_to_malloovia_status
     )
-from .model import (System, Workload, App)
+from .model import (System, Workload, App, TimeUnit)
 
 LpProblem.bestBound = None   # Add new attribute to pulp problems
 
@@ -76,12 +76,12 @@ class Malloovia:
             preallocation: number of reserved instances which are
                 preallocated. In phase I this parameter can be omitted (defaults to ``None``),
                 and in phase II it should contain the object returned by
-                ``get_reserved_allocation()`` after solving the phase I.
+                ``get_reserved_allocation()`` after solving phase I.
             relaxed: if ``True``, the problem uses continuous variables
                 instead of integer ones.
         """
         self.system = system
-        # Ensure that the workloas received are ordered by the field app in the same
+        # Ensure that the workloads received are ordered by the field app in the same
         # ordering than the list system.apps
         self.workloads = reorder_workloads(workloads, system.apps)
         if preallocation is None:
@@ -102,14 +102,25 @@ class Malloovia:
             "CookedData",
             ["map_dem", "map_res",
              "instances_res", "instances_dem",
-             "limiting_sets"]
+             "limiting_sets", "instance_prices", "instance_perfs"]
         )
 
 
         # Separate the instances in two types: reserved and on-demand
+        # Also create dictionaries for fast lookup of price and performance, converted
+        # to the timeslot units
         instances_res = []
         instances_dem = []
+        instance_prices = {}
+        instance_perfs = {}
+        timeslot_length = self.workloads[0].time_unit
         for iclass in system.instance_classes:
+            instance_prices[iclass] = iclass.price/TimeUnit(iclass.time_unit).to(timeslot_length)
+            for app in self.system.apps:
+                instance_perfs[iclass, app] = (
+                    self.system.performances.values[iclass, app]
+                    /TimeUnit(self.system.performances.time_unit).to(timeslot_length)
+                )
             if iclass.is_reserved:
                 instances_res.append(iclass)
             else:
@@ -127,6 +138,8 @@ class Malloovia:
             map_res=None,
             instances_res=instances_res,
             instances_dem=instances_dem,
+            instance_prices=instance_prices,
+            instance_perfs=instance_perfs,
             limiting_sets=limiting_sets
         )
 
@@ -155,18 +168,18 @@ class Malloovia:
         """Adds to the LP problem the function to optimize.
 
         The function to optimize is the cost of the deployment. It is computed as
-        the sum of all Y_a_ic multiplied by the length of the period and by the price/hour
-        of each reserved instance class plus all X_a_ic_l multiplied by the price/hour
+        the sum of all Y_a_ic multiplied by the length of the period and by the price/timeslot
+        of each reserved instance class plus all X_a_ic_l multiplied by the price/timeslot
         of each on-demand instance class and by the number of times that workload ``l``
         appears in the period."""
 
         period_length = sum(self.load_hist.values())
 
         self.pulp_problem += lpSum(
-            [self.cooked.map_res[_a, _ic] * _ic.price * period_length
+            [self.cooked.map_res[_a, _ic] * self.cooked.instance_prices[_ic] * period_length
              for _a in self.system.apps
              for _ic in self.cooked.instances_res] +
-            [self.cooked.map_dem[_a, _ic, _l] * _ic.price * self.load_hist[_l]
+            [self.cooked.map_dem[_a, _ic, _l] * self.cooked.instance_prices[_ic] * self.load_hist[_l]
              for _a in self.system.apps
              for _ic in self.cooked.instances_dem
              for _l in self.load_hist.keys()
@@ -215,13 +228,13 @@ class Malloovia:
             for ins in self.cooked.instances_res:
                 perf_reserved.append(
                     self.cooked.map_res[app, ins]
-                    * self.system.performances.values[ins, app])
+                    * self.cooked.instance_perfs[ins, app])
             for load in self.load_hist.keys():
                 perf_ondemand = []
                 for ins in self.cooked.instances_dem:
                     perf_ondemand.append(
                         self.cooked.map_dem[app, ins, load]
-                        * self.system.performances.values[ins, app])
+                        * self.cooked.instance_perfs[ins, app])
                 self.pulp_problem += lpSum(perf_reserved +  perf_ondemand) >= load[i], \
                              "Minimum performance for application {} "\
                              "when workload is {}".format(app, load)
@@ -452,7 +465,7 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
     hist = MallooviaHistogram()
     hist.apps = tuple(w.app for w in workloads)
     timeslots = len(workloads[0].values)
-    # Ensure that all workloads have the same length
+    # Ensure that all workloads have the same length and units
     assert all(len(w.values) == timeslots for w in workloads),\
             "All workloads should have the same length"
     # Iterate over tuples of loads, one tuple per timeslot
@@ -502,11 +515,11 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
 
         self.pulp_problem += lpSum(
             [self.cooked.map_res[_a, _ic]
-             * self.system.performances.values[_ic, _a]/workloads[_a]
+             * self.cooked.instance_perfs[_ic, _a]/workloads[_a]
              for _a in self.system.apps
              for _ic in self.cooked.instances_res] +
             [self.cooked.map_dem[_a, _ic, _l]
-             * self.system.performances.values[_ic, _a]/workloads[_a]
+             * self.cooked.instance_perfs[_ic, _a]/workloads[_a]
              for _a in self.system.apps
              for _ic in self.cooked.instances_dem
              for _l in self.load_hist.keys()
@@ -546,13 +559,13 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
             for ins in self.cooked.instances_res:
                 perf_reserved.append(
                     self.cooked.map_res[app, ins]
-                    * self.system.performances.values[ins, app])
+                    * self.cooked.instance_perfs[ins, app])
             for load in self.load_hist.keys():
                 perf_ondemand = []
                 for ins in self.cooked.instances_dem:
                     perf_ondemand.append(
                         self.cooked.map_dem[app, ins, load]
-                        * self.system.performances.values[ins, app])
+                        * self.cooked.instance_perfs[ins, app])
                 self.pulp_problem += lpSum(perf_reserved +  perf_ondemand) <= load[i], \
                              "Maximum performance for application {} "\
                              "when workload is {}".format(app, load)
@@ -569,11 +582,11 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
         if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved
             raise ValueError("Cannot get the cost of an unsolved problem")
         return sum(
-            ic.price * self.cooked.map_res[app, ic].varValue
+            self.cooked.instance_prices[ic] * self.cooked.map_res[app, ic].varValue
             for ic in self.cooked.instances_res
             for app in self.system.apps
             ) + sum(
-                ic.price * self.cooked.map_dem[app, ic, wl].varValue * self.load_hist[wl]
+                self.cooked.instance_prices[ic] * self.cooked.map_dem[app, ic, wl].varValue * self.load_hist[wl]
                 for ic in self.cooked.instances_dem
                 for app in self.system.apps
                 for wl in self.load_hist.keys()
