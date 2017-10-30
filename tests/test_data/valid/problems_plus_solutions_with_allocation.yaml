@@ -1,0 +1,215 @@
+Limiting_sets:
+  - &us_east
+    id: us_east
+    max_vms: 20
+    max_cores: 0
+  - &us_west_m4
+    id: us_west_m4
+    max_vms: 5
+    max_cores: 0
+
+Instance_classes:
+  - &ic1
+    id: ic1
+    name: m3.large
+    limiting_sets: [*us_east]
+    max_vms: 20
+    is_reserved: true
+    price: 2.3
+    time_unit: h
+  - &ic2
+    id: ic2
+    name: m4.medium
+    limiting_sets: [*us_west_m4]
+    max_vms: 5
+    is_reserved: false
+    price: 4.4
+    time_unit: h
+  - &ic3
+    id: ic3
+    name: m4.large
+    limiting_sets: [*us_west_m4]
+    max_vms: 5
+    is_reserved: false
+    price: 8.2
+    time_unit: h
+
+Apps:
+  - &App1
+    id: App1
+    name: Web server
+  - &App2
+    id: App2
+    name: Database
+
+Workloads:
+  - &ltwp_app1
+    id: ltwp_app1
+    description: Randomly generated
+    values: [1,22,5,6,10,20,50,20]
+    time_unit: h
+    intra_slot_distribution: uniform
+    app: *App1
+
+  - &ltwp_app2
+    id: ltwp_app2
+    description: Randomly generated
+    values: [30,2,3,123,12,213,12,3]
+    time_unit: h
+    intra_slot_distribution: poisson
+    app: *App2
+
+  - &stwp_app1
+    id: stwp_app1
+    description: Randomly generated, similar to ltwp_app1
+    values: [1,22,5,6,12,20,50,19]
+    time_unit: h
+    intra_slot_distribution: uniform
+    app: *App1
+
+  - &stwp_app2
+    id: stwp_app2
+    description: Randomly generated, similar to ltwp_app2
+    values: [30,2,3,120,15,210,10,4]
+    time_unit: h
+    intra_slot_distribution: poisson
+    app: *App2
+
+
+Performances:
+  - &Performance1
+    id: Performance1
+    time_unit: h
+    values:
+      - instance_class: *ic1
+        app: *App1
+        value: 5
+      - instance_class: *ic1
+        app: *App2
+        value: 6
+      - instance_class: *ic2
+        app: *App1
+        value: 4
+      - instance_class: *ic2
+        app: *App2
+        value: 3
+      - instance_class: *ic3
+        app: *App1
+        value: 5
+      - instance_class: *ic3
+        app: *App2
+        value: 4
+
+Problems:
+  - &phaseI
+    id: phaseI
+    name: Example Phase I
+    description: Simple example with two apps and three instance classes, LTWP for phase I
+    workloads: [*ltwp_app1, *ltwp_app2]
+    instance_classes: [*ic1, *ic2, *ic3]
+    performances: *Performance1
+
+  - &phaseII
+    id: phaseII
+    name: Example Phase II
+    description: Simple example with two apps and three instance classes, STWP for phase II
+    workloads: [*stwp_app1, *stwp_app2]
+    instance_classes: [*ic1, *ic2]
+    performances: *Performance1
+
+Solutions:
+- &solution_phase_I
+  id: solution_phase_I
+  problem: *phaseI
+  solving_stats:
+    optimal_cost: 1234.23
+    creation_time: 3.1
+    solving_time: 15.2
+    algorithm:
+      malloovia:
+        gcd: true
+        status: optimal
+        gcd_multiplier: 5
+        n_levels: 200
+        frac_gap: 0.01
+        max_seconds: 300
+        lower_bound: null
+  reserved_allocation:
+    instance_classes: [*ic1]
+    vms_number: [20]
+  allocation:
+    apps: [*App1, *App2]
+    instance_classes:  [*ic1, *ic2]
+    workload_tuples: [[1,30], [22, 2], [5,3], [6,123], [10,12], [20,213], [50,12], [20,3]]
+    repeats: [1, 1, 1, 1, 1, 1, 1, 1]
+    vms_number:
+      - # l0 (1,30)
+        - [10, 15]
+        - [10, 15]
+      - # l1 (22, 2)
+        - [10, 5]
+        - [10, 0]
+      - # l3 (5,3)
+        - [10, 5]
+        - [10, 2]
+
+- &solution_phase_II
+  id: solution_phase_II
+  problem: *phaseII
+  previous_phase: *solution_phase_I
+  solving_stats:
+    - # t: 0
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          status: optimal
+          frac_gap: 0.01
+          max_seconds: 300
+          lower_bound: null
+    - # t: 1
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          frac_gap: 0.01
+          max_seconds: 300
+          status: optimal
+          lower_bound: null
+      # ...
+    - # t: 8760
+      optimal_cost: 0.23
+      creation_time: 0.1
+      solving_time: 0.1
+      algorithm:
+        malloovia:
+          gcd: false
+          frac_gap: 0.01
+          max_seconds: 300
+          status: optimal
+          lower_bound: null
+
+  global_solving_stats:
+    creation_time: 200
+    solving_time: 300
+    optimal_cost: 123.1
+    status: optimal
+
+  allocation:
+    apps: [*App1, *App2]
+    instance_classes: [*ic1, *ic2, *ic3]
+    vms_number:
+      - # t: 0
+        - [20, 0, 0]
+        - [0, 0, 0]
+      - # t: 1
+        - [15, 2, 0]
+        - [5, 1, 0]
+        # ...
+      - # t: 8760
+        - [10, 2, 0]
+        - [10, 1, 1]

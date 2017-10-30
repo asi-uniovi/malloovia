@@ -21,7 +21,7 @@ from .model import (System, Workload, App, TimeUnit)
 
 LpProblem.bestBound = None   # Add new attribute to pulp problems
 
-class Malloovia:
+class MallooviaLp:
     """Solves the allocation problem, using Linear Programming.
 
     This class contains methods to create a linear programming problem
@@ -185,7 +185,7 @@ class Malloovia:
              for _l in self.load_hist.keys()
             ]), "Objective: minimize cost"
 
-    def create_problem(self) -> 'Malloovia':
+    def create_problem(self) -> 'MallooviaLp':
         """Creates the PuLP problem with all variables and restrictions.
 
         Returns:
@@ -311,7 +311,7 @@ class Malloovia:
         """Adds ``max_cores`` per limiting set restriction.
 
         If the limiting set provides a max_cores > 0, then the sum of all
-        instance cores among all instance classes whith are member of that
+        instance cores among all instance classes which are member of that
         limiting set should be limited to that maximum."""
         for cloud in self.cooked.limiting_sets:
             if cloud.max_cores == 0:
@@ -358,8 +358,9 @@ class Malloovia:
         Raises:
             ValueError: when the problem is yet unsolved.
         """
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the cost of an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
+
         return pulp.value(self.pulp_problem.objective)
 
     def get_allocation(self) -> AllocationInfo:
@@ -372,8 +373,8 @@ class Malloovia:
             ValueError: if no solution is available (unsolved or infeasible problem)
         """
 
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the allocation for an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
 
         workload_tuples = []
         repeats = []
@@ -426,11 +427,11 @@ class Malloovia:
 
         # This is all the information required for PhaseII.
 
-        if self.pulp_problem.status == pulp.LpStatusNotSolved:  # Not solved yet
-            raise ValueError("Cannot get the allocation for an unsolved problem")
+        if self.pulp_problem.status != pulp.LpStatusOptimal:
+            raise ValueError("Cannot get the cost when the status is not optimal")
 
         allocation = []
-        for _ in self.load_hist:  # Loop over all posible workloads
+        for _ in self.load_hist:  # Loop over all possible workloads
             workload_allocation = []
             for iclass in self.cooked.instances_res:
                 i_allocation = sum(
@@ -455,7 +456,7 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
         workloads: a sequence of :class:`Workload` objects, each one
             containing the fields ``app`` (which identifies the app producing this
             workload) and ``values`` (which stores a sequence of numbers representing
-            the workload for eatch timeslot for that app).
+            the workload for each timeslot for that app).
     Returns:
         A dictionary where the key is the workload for one timeslot,
         expressed as a tuple with one element for each application, and the value
@@ -492,14 +493,14 @@ def reorder_workloads(workloads: Sequence[Workload],
     return tuple(ordered_workloads)
 
 
-class MallooviaMaximizeTimeslotPerformance(Malloovia):
+class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
     """Find the allocation which maximizes performance for a single timeslot.
 
-    This problem is the dual of Malloovia. Instead of minimizing the cost
+    This problem is the dual of MallooviaLp. Instead of minimizing the cost
     while providing the minimum performances, the problem to solve now is
-    to maximize the performance whithout breaking the limits.
+    to maximize the performance without breaking the limits.
 
-    The class inherits from Mallovia the initialization methods as well as
+    The class inherits from Malloovia the initialization methods as well as
     the ones to get the cost and allocation of the solution, but overrides
     the function to be optimized and some of the constraints.
     """
@@ -525,7 +526,7 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
              for _l in self.load_hist.keys()
             ]), "Objective: maximize fulfilled workload fraction"
 
-    def create_problem(self) -> 'MallooviaMaximizeTimeslotPerformance':
+    def create_problem(self) -> 'MallooviaLpMaximizeTimeslotPerformance':
         """This method creates the PuLP problem, and calls other
         methods to add variables and restrictions to it.
         It initializes the attribute 'self.prob' with the
@@ -592,7 +593,7 @@ class MallooviaMaximizeTimeslotPerformance(Malloovia):
                 for wl in self.load_hist.keys()
             )
 
-# The following function is used to monkeypatch part of PuLP code.
+# The following function is used to monkey patch part of PuLP code.
 # This modification is aimed to get the value of the optimal best bound
 # which is provided by CBC solver as part of the solution, even if
 # the solution could not be found due to a time limit
@@ -711,12 +712,12 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
     return lp.status
 
 
-# Monkeypatching
+# Monkey patching
 COIN_CMD.solve_CBC = _solve_CBC_patched
 
 
 __all__ = [
-    'Malloovia', 'get_load_hist_from_load',
-    'MallooviaMaximizeTimeslotPerformance'
+    'MallooviaLp', 'get_load_hist_from_load',
+    'MallooviaLpMaximizeTimeslotPerformance'
     ]
  

@@ -9,7 +9,7 @@ When installing Malloovia with ``pip``, a command line script is also installed 
     $ malloovia
     Usage: malloovia [OPTIONS] COMMAND [ARGS]...
 
-    Mallovia command line interface
+    Malloovia command line interface
 
     Options:
     --version  Show the version and exit.

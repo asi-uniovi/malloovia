@@ -32,18 +32,13 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     Raises:
         ValueError if the file has not the expected extension.
     """
-    if filename.endswith(".yaml.gz"):
-        _open = gzip.open
-    elif filename.endswith(".yaml"):
-        _open = open
-    else:
-        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
+    _open = _get_open_function_from_extension(filename)
 
     with _open(filename, mode='rt', encoding="utf8") as stream:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
-def read_problems_from_github(dataset: str, id: str=None,
+def read_problems_from_github(dataset: str, _id: str=None,
                               base_url: str=None) -> Union[Problem, Mapping[str, Problem]]:
     """Reads a problem or set of problems from a GitHub repository.
 
@@ -73,10 +68,10 @@ def read_problems_from_github(dataset: str, id: str=None,
 
     problems = problems_from_dict(data, dataset)
 
-    if id is None:
+    if _id is None:
         return problems
 
-    return problems[id]
+    return problems[_id]
 
 def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[str, Problem]:
     """Takes data from a dictionary with a particular structure, and stores it in
@@ -89,12 +84,32 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
     Returns:
         A dictionary whose keys are problem ids, and the values are :class:`Problem` objects.
     """
+    problems, _ = _problems_and_ids_from_dict(data, yaml_filename)
+    return problems
+
+def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
+                               ) -> Tuple[Mapping[str, Problem], Mapping[Any, Any]]:
+    """Takes data from a dictionary with a particular structure, and stores it in
+    several Problem instances. It also returns another dictionary that can be used to
+    translate between YAML ids and the corresponding objects.
+
+    Args:
+        data: a dictionary which is the result of reading a YAML file. The dictionary
+            is expected to have a particular structure. It can be previously validated
+            through a YAML schema to ensure so.
+    Returns:
+        A tuple with two values:
+        - A dictionary whose keys are problem ids, and the values are :class:`Problem` objects.
+        - A dictionary whose keys are YAML ids, and the values are the corresponding
+        malloovia object
+    """
+
     # Mapping to remember which dictionaries were already converted to objects
-    # Keys are ids of dictionaries,  values are the corresponding objects
+    # Keys are object ids of dictionaries, values are the corresponding malloovia objects
     ids_to_objects = {}
 
     def create_if_neccesary(_class, _dict):
-        """Auxiliar function to instantiate a new object from a dict only
+        """Auxiliary function to instantiate a new object from a dict only
         if the same dict was not already instantiated"""
         # If already created, return the stored object
         if id(_dict) in ids_to_objects:
@@ -191,7 +206,105 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
         )
         new_problem = Problem(**problem)
         problems[new_problem.id] = new_problem
-    return problems
+        ids_to_objects[id(problem)] = new_problem
+    return problems, ids_to_objects
+
+def read_solutions_from_yaml(filename: str) -> Mapping[str, Union[SolutionI, SolutionII]]:
+    """Reads the solutions(s) contained in a YAML file.
+
+    Args:
+       filename: name of the YAML file to read, it has to have the extension
+          ``.yaml`` or ``.yaml.gz`` (which is automatically decompressed on read).
+
+    Returns:
+        A dictionary whose keys are solution ids, and the values are :class:`Solution` objects.
+
+    Raises:
+        ValueError if the file has not the expected extension.
+    """
+    _open = _get_open_function_from_extension(filename)
+
+    with _open(filename, mode='rt', encoding="utf8") as stream:
+        data = yaml.safe_load(stream)
+    return solutions_from_dict(data, filename)
+
+def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
+                       ) -> Mapping[str, Union[SolutionI, SolutionII]]:
+    """Takes data from a dictionary with a particular structure, and stores it in
+    several Solution instances.
+
+    Args:
+        data: a dictionary which is the result of reading a YAML file. The dictionary
+            is expected to have a particular structure. It can be previously validated
+            through a YAML schema to ensure so.
+    Returns:
+        A dictionary whose keys are solution ids, and the values are :class:`Solution` objects.
+    """
+
+    # Mapping to remember which dictionaries were already converted to objects
+    # Keys are object ids of dictionaries, values are the corresponding malloovia objects
+    ids_to_objects = {}
+
+    def _is_phase_i_solution(solution_dict):
+        """Receives a solution as a dict generated by yaml_load() and returns
+        true if is a phase I solution and false otherwise"""
+        if not 'previous_phase' in solution_dict:
+            return True
+
+        return False
+
+    def _create_phase_i_solution(solution_dict):
+        return SolutionI(**solution_dict)
+
+    def _create_phase_ii_solution(solution_dict):
+        solution_dict['previous_phase'] = ids_to_objects[id(solution_dict['previous_phase'])]
+        return SolutionII(**solution_dict)
+
+    def _dict_list_to_id_list(dict_list):
+        id_list = []
+        for item in dict_list:
+            id_list.append(ids_to_objects[id(item)])
+        return id_list
+
+    def _convert_allocation(solution_dict):
+        alloc = solution_dict['allocation']
+        solution_dict['allocation']['apps'] = _dict_list_to_id_list(alloc['apps'])
+        solution_dict['allocation']['instance_classes'] = _dict_list_to_id_list(alloc['instance_classes'])
+
+    def _create_solution(solution_dict):
+        solution_dict['problem'] = ids_to_objects[id(solution_dict['problem'])]
+
+        if 'allocation' in solution_dict:
+            _convert_allocation(solution_dict)
+
+        if _is_phase_i_solution(solution_dict):
+            res_alloc = solution_dict['reserved_allocation']
+            res_alloc['instance_classes'] = _dict_list_to_id_list(res_alloc['instance_classes'])
+            result = _create_phase_i_solution(solution_dict)
+        else:
+            result = _create_phase_ii_solution(solution_dict)
+
+        ids_to_objects[id(solution_dict)] = result
+        return result
+
+    _, ids_to_objects = _problems_and_ids_from_dict(data, yaml_filename)
+
+    solutions = {}
+
+    # Create solutions for phase I. They have to be created before solutions for
+    # phase II because the latter reference the former
+    for solution_dict in data['Solutions']:
+        if _is_phase_i_solution(solution_dict):
+            solution = _create_solution(solution_dict)
+            solutions[solution.id] = solution
+
+     # Create solutions for phase II
+    for solution_dict in data['Solutions']:
+        if not _is_phase_i_solution(solution_dict):
+            solution = _create_solution(solution_dict)
+            solutions[solution.id] = solution
+
+    return solutions
 
 def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disable=too-many-locals
     """Converts problems from the classes used by malloovia to a yaml string.
@@ -278,7 +391,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         """Returns an array of lines to add to the yaml array, representing the
         Workloads part"""
         lines = []
-        # It is neccesary to remove "filename" if it is None, or "values" if not
+        # It is necessary to remove "filename" if it is None, or "values" if not
         # But fields cannot be removed from namedtuples, so we convert it to dict
         lines.append("Workloads:")
         for w_l in sorted(workloads):
@@ -329,7 +442,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         return lines
 
     # "main" body of the function
-    yam = []                  # Lisf of lines of the resulting yaml
+    yam = []                  # List of lines of the resulting yaml
     apps = set()              # set of App objects indirectly referenced from the problems
                               #   (via the workloads)
     workloads = set()         # set of Workload objects directly referenced from the problems
@@ -678,7 +791,7 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
         * AllocationInfo.units -> value for this particular allocation. If the units is "vms",
           the value represents the number of VMs of the kind "instance_class" to be activated
           during timeslot "timeslot" (in phase II), or when the workload is "workload" (in
-          phase I), for the appplication "app".
+          phase I), for the application "app".
 
     Some of these fields are useful only for Phase I, while others are for Phase II. Some
     boolean arguments allow the selection of these specific fields.
@@ -766,6 +879,17 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                 if include_repeats:
                     result["repeats"] = alloc.repeats[slot]
                 yield result
+
+def _get_open_function_from_extension(filename):
+    """Returns the function open is the extension is 'yaml' or
+    'gzip.open' if it is 'yaml.gz'; otherwise, raises ValueError
+    """
+    if filename.endswith(".yaml.gz"):
+        return gzip.open
+    elif filename.endswith(".yaml"):
+        return open
+    else:
+        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
 
 __all__ = [
     'read_problems_from_yaml', 'read_problems_from_github',

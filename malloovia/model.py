@@ -2,7 +2,7 @@
 """This module implements the base classes which define a
 problem to be solved by Malloovia.
 
-All these clases are inmutable (most of them are :class:`namedtuple`\\ s).
+All these classes are immutable (most of them are :class:`namedtuple`\\ s).
 Usually they are initialized via the functions provided in :mod:`util` module.
 For example::
 
@@ -252,7 +252,7 @@ def system_from_problem(problem: Problem) -> System:
 ######################################################################################
 
 # PerformanceValues is not a namedtuple, but a class which encapsulates a dict
-# trying to being as inmmutable as possible (python doesn't have frozendicts)
+# trying to being as immutable as possible (python doesn't have frozendicts)
 #
 # The class uses __slots__ to prevent the addition of more attributes, and
 # an internal attribute __perfs whose name is mangled by python to make
