@@ -808,6 +808,25 @@ class TestMallooviaApi(PresetProblemPaths):
             assert  full.values[0] == solution.allocation.values[wl_index]
 
 class TestPhaseII(PresetProblemPaths):
+    def test_phase_ii_should_reject_infeasible_phase_i(self):
+        """Trying to solve phase ii when phase i was infeasible should raise ValueError"""
+        # Read problem2, which is infeasible
+        problems = util.read_problems_from_yaml(self.problems["problem2"])
+        assert "example" in problems
+        problem_phase_i = problems['example']
+
+        # Some trivial checks
+        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.workloads[0].values[1] == 32
+
+        phaseI = phases.PhaseI(problem_phase_i)
+        solution = phaseI.solve()
+
+        assert solution.solving_stats.algorithm.status == Status.infeasible
+
+        with pytest.raises(ValueError, match="phase_i_solution passed to PhaseII is not optimal"):
+            phaseII = phases.PhaseII(problem=problem_phase_i, phase_i_solution=solution)
+
     def test_phase_ii_complete(self):
         """Solve phaseI and phaseII"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])

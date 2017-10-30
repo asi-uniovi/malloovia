@@ -159,6 +159,8 @@ class PhaseII:
             reuse_rsv: boolean indicating if reserved instances that were assigned in
                 phase I to an application can be reused for another application.
         """
+        if phase_i_solution.solving_stats.algorithm.status != Status.optimal:
+            raise ValueError("phase_i_solution passed to PhaseII is not optimal")
         self.problem = problem
         self.phase_i_solution = phase_i_solution
         self.solver = solver
