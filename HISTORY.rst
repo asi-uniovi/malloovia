@@ -24,3 +24,13 @@ History
 * Changed from PyYAML to ruamel.yaml, much faster
 * Read from YAML now accepts gzipped files too
 * Some bugs fixed in the schema
+
+1.0.0 (2017-11-01)
+------------------
+
+* Incompatible API change: it is required to specify `time_unit` in
+  `InstanceClass`, `PerformanceSet` and `Workload` classes, in order to
+  clarify the time unit for price, performance and workload timeslots.
+* Added utility function to read solutions from yaml files.
+* Revised documentation and code quality. Improved README for github.
+* Minor bugfixes.
