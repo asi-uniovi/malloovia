@@ -60,7 +60,7 @@ def read_problems_from_github(dataset: str, _id: str=None,
 
     if base_url is None:
         base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
-                    "/master/tests/test_data/problems/")
+                    "/units/tests/test_data/problems/")
 
     url = "{}/{}.yaml".format(base_url, dataset)
     with urllib.request.urlopen(url) as stream:
@@ -480,12 +480,7 @@ def preprocess_yaml(input_yaml_filename: str) -> str:
         in that section. This name is considered relative to the path of the main yaml file.
     """
 
-    if input_yaml_filename.endswith(".yaml.gz"):
-        _open = gzip.open
-    elif input_yaml_filename.endswith(".yaml"):
-        _open = open
-    else:
-        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
+    _open = _get_open_function_from_extension(input_yaml_filename)
 
     output = []
     with _open(input_yaml_filename, mode='rt', encoding="utf8") as istream:
@@ -496,12 +491,13 @@ def preprocess_yaml(input_yaml_filename: str) -> str:
             output.append(line)
     return "".join(output)
 
-def read_file_relative_to(filename: str, relative_to: str) -> str:
+def read_file_relative_to(filename: str, relative_to: str, kind: str = "yaml") -> str:
     """Reads one file by its name, considered relative to other filename.
 
     Args:
         filename: the name of the file to read
         relative_to: the name of the file to which the first one is considered relative
+        kind: expected extension of the filename
 
     Examples:
         * ``read_file_relative_to("foo/bar/whatever.txt", "other.txt")``
@@ -517,10 +513,7 @@ def read_file_relative_to(filename: str, relative_to: str) -> str:
     """
     path_to_input = os.path.abspath(relative_to)
     path_to_filename = os.path.join(os.path.dirname(path_to_input), filename)
-    if filename.endswith(".gz"):
-        _open = gzip.open
-    else:
-        _open = open
+    _open = _get_open_function_from_extension(filename, kind=kind)
     return _open(path_to_filename, mode='rt', encoding="utf8").read()
 
 def read_from_relative_csv(filename: str, relative_to: str) -> Tuple[float]:
@@ -540,7 +533,7 @@ def read_from_relative_csv(filename: str, relative_to: str) -> Tuple[float]:
     Raises:
         FileNotFoundError: If the file is not found.
     """
-    content = read_file_relative_to(filename, relative_to)
+    content = read_file_relative_to(filename, relative_to, kind="csv")
     return tuple(float(line) for line in content.split("\n") if line)
 
 def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
@@ -880,16 +873,16 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                     result["repeats"] = alloc.repeats[slot]
                 yield result
 
-def _get_open_function_from_extension(filename):
-    """Returns the function open is the extension is 'yaml' or
-    'gzip.open' if it is 'yaml.gz'; otherwise, raises ValueError
+def _get_open_function_from_extension(filename, kind="yaml"):
+    """Returns the function open is the extension is ``kind`` or
+    'gzip.open' if it is ``kind``.gz'; otherwise, raises ValueError
     """
-    if filename.endswith(".yaml.gz"):
+    if filename.endswith(".{}.gz".format(kind)):
         return gzip.open
-    elif filename.endswith(".yaml"):
+    elif filename.endswith(".{}".format(kind)):
         return open
     else:
-        raise ValueError("Invalid filename. Should be .yaml or .yaml.gz")
+        raise ValueError("Invalid filename. Should be .{} or .{}.gz".format(kind, kind))
 
 __all__ = [
     'read_problems_from_yaml', 'read_problems_from_github',

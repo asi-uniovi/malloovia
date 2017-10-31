@@ -138,10 +138,8 @@ class TestUtilModule(PresetDataPaths):
         validate(sol_ii_dict, sol_schema)
 
 
-    def disabled_test_read_dataset_from_github(self):
+    def test_read_dataset_from_github(self):
         """Tests that files with several problems can be read from github URLs"""
-        # TODO: re-enable this test when the problem yaml file in github is updated
-        #       to include time_unit fields
 
         problems = util.read_problems_from_github(dataset="problem1")
         assert len(problems) == 1
@@ -151,10 +149,8 @@ class TestUtilModule(PresetDataPaths):
         assert problem.workloads[0].values == (30, 32, 30, 30)
         assert problem.workloads[1].values == (1003, 1200, 1194, 1003)
 
-    def disabled_test_read_single_problem_from_github(self):
+    def test_read_single_problem_from_github(self):
         """Test a single problem can be read from a github URL"""
-        # TODO: re-enable this test when the problem yaml file in github is updated
-        #       to include time_unit fields
         problem = util.read_problems_from_github(dataset="problem1", _id="example")
         assert len(problem.instance_classes) == 2
         assert len(problem.workloads) == 2
