@@ -54,7 +54,7 @@ The solver operates in two phases.
 * :class:`.PhaseII` allows to solve single timeslots, or to perform a simulation of a complete reservation period, by solving separately each timeslot. 
   It provides a :class:`.SolutionII` as result, which contains :class:`.GlobalSolvingStats` which aggregates statistics about all solved timeslots, and the :class:`.AllocationInfo` with the optimal allocation for each timeslot.
   Optionally it can accept a :class:`.STWPredictor` from which it obtains the short-term workload prediction of each timeslot.
-  An example of such a predictor is :class:`.OmniscentSTWPredictor`.
+  An example of such a predictor is :class:`.OmniscientSTWPredictor`.
 
 .. autoclass:: malloovia.PhaseI
     :members:
@@ -92,20 +92,20 @@ Solutions
 .. autoclass:: malloovia.STWPredictor
     :members:
 
-.. autoclass:: malloovia.OmniscentSTWPredictor
+.. autoclass:: malloovia.OmniscientSTWPredictor
     :members:
 
 Internal solver
 -----------------
 
-Phase I and II make use of :class:`.Malloovia` class, which is the core of the solver.
+Phase I and II make use of :class:`.MallooviaLp` class, which is the core of the solver.
 Although using this class is not usually required, it is exposed because it can be useful to inherit from it to implement other LP constraints.
-Also, phase II makes use of :class:`.MallooviaMaximizeTimeslotPerformance` for the timeslots in which the demanded performance cannot be achieved without breaking the limits.
+Also, phase II makes use of :class:`.MallooviaLpMaximizeTimeslotPerformance` for the timeslots in which the demanded performance cannot be achieved without breaking the limits.
 
-.. autoclass:: malloovia.Malloovia
+.. autoclass:: malloovia.MallooviaLp
     :members:
 
-.. autoclass:: malloovia.MallooviaMaximizeTimeslotPerformance
+.. autoclass:: malloovia.MallooviaLpMaximizeTimeslotPerformance
     :members:
 
 Input/Output and utility functions

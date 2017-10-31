@@ -13,7 +13,7 @@ Use linear programming to allocate applications to cloud infrastructure.
 .. doctest::
 
         >>> from malloovia import *
-        >>> problem = read_problems_from_github(dataset="problem1", id="example")
+        >>> problem = read_problems_from_github(dataset="problem1", _id="example")
         >>> phase_i_solution = PhaseI(problem).solve()
         >>> phase_i_solution.solving_stats.optimal_cost
         178.0
@@ -27,7 +27,7 @@ Use linear programming to allocate applications to cloud infrastructure.
           repeats: [2, 1, 1]
 
 See :ref:`background` for details about the problem that Malloovia is solving.
-See :ref:`usage` for details about the high-level Malloovia API, and :ref:`Documentation for developers <developers>` for details about the implementation.
+See :ref:`usage` for details about the python and YAML interfaces, and :ref:`API documentation <api>` for details about the implementation.
 
 * Free software: MIT license
 

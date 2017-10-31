@@ -4,7 +4,8 @@
 Command-line interface
 ======================
 
-When installing Malloovia with ``pip``, a command line script is also installed in your path (inside the virtual environment if you used one to install Malloovia, as recommended). You can try to invoke it from the terminal:
+When installing Malloovia with ``pip``, a command line script is also installed in your path (inside the virtual environment if you used one to install Malloovia, as recommended).
+You can try to invoke it from the terminal::
 
     $ malloovia
     Usage: malloovia [OPTIONS] COMMAND [ARGS]...
@@ -24,7 +25,7 @@ It can be used to validate :ref:`YAML files <yaml>` or to solve problems.
 Validating YAML files
 ---------------------
 
-The usage is simple:
+The usage is simple::
 
     $ malloovia validate problem_file.yaml
     problem_file.yaml is correct
@@ -55,9 +56,10 @@ The way to use malloovia cli for this example would be::
 Malloovia loaded the yaml file and built the python description of ``problem1`` and ``problem2`` (it took 0.004s in this example).
 It called ``malloovia.PhaseI(problem1).solve()`` (which took 0.20s) and stored the solution.
 Then it called ``malloovia.PhaseII(problem2, phase_i_sol).solve_period()`` to iterate over the STWP stored in ``problem2``.
-This example was very small and the STWP contained only 10 timeslots, so it finished in 0.101s, but the usual case with 8760 timeslots takes time, and thus a progress bar is displayed, which updates every 10 solved timeslots.
+This example was very small and the STWP contained only 10 timeslots, so it finished in 0.101s,
+but the usual case with 8760 timeslots if hours are used, or 525600 timeslots if minutes are used, takes time and thus a progress bar is displayed, which updates every 10 solved timeslots.
 Finally, both solutions (the one for Phase I, and the other for the whole simulation period of Phase II) are written in a yaml file, which by default is named after the input file.
 
-Option ``--phase-ii-id`` can be omitted, and thus only phase I is performed. Option ``--phase-i-id`` cannot be omitted.
+Option ``--phase-ii-id`` can be omitted, and then only phase I is performed. Option ``--phase-i-id`` cannot be omitted.
 
 Use ``malloovia solve --help`` for more options. For example, it is possible to give values to ``frac-gap`` or ``max-seconds``

@@ -3,7 +3,7 @@
 Background
 ==========
 
-Conceptually, Malloovia is an extension of `Lloovia <https://github.com/asi-uniovi/lloovia>`_, to allow for multiple applications, each one with a different workload and performance, and it is described in a paper to be published in September 2017.
+Conceptually, Malloovia is an extension of `Lloovia <https://github.com/asi-uniovi/lloovia>`_, to allow for multiple applications, each one with a different workload and performance. It is described in paper "`Cost Minimization of Virtual Machine Allocation in Public Clouds Considering Multiple Applications <http://www.atc.uniovi.es/personal/joaquin-entrialgo/pdfs/Entrialgo2017-gecon.pdf>`_" presented at `GECON 2017 <http://2017.gecon-conference.org/>`_.
 
 However, the implementation of Malloovia is not a simple extension of the one of Lloovia. Instead, the code was completely rewritten to obtain a more clean, robust and maintainable implementation. Malloovia is now a standard python package which can be installed with ``pip`` and has very few dependencies (which are automatically installed through ``pip install malloovia``):
 
@@ -35,7 +35,7 @@ To be able to model such a diversity, malloovia introduces the concept of "Insta
 *Instance classes*
   One "Instance class" is a particular type of VM running inside a particular region or availability zone. For example, one of Amazon's region is called ``us.east``, and it contains several availability zones called ``us.east_a``, ``us.east_b`` and so on. In all of these availability zones it offers the same set of VM types, for example ``m4.large``, ``m4.xlarge``, ``t2.nano``, etc. Let's consider for example the type ``m4.large``. For Amazon it is a single "VM type", but for Malloovia it is a whole set of "Instance classes", depending the region and zone in which it is deployed. So, a single VM type generates a number of instance classes. It can be called for example ``m4.large_us.east``, ``m4.large_us.east_a``, ``m4.large_us.east_b`` and so on.
 
-  Each instance class is described by several parameters: the number of cores it has, the price, the VM type, the limit on the number of VMs of that type allowed inside its region/zone, etc. Some of these parameters are identical for all instance classes originated from the same VM type, but not all of them. For example, the price and limits can be different in different regions.
+  Each instance class is described by several parameters: the number of cores it has, the price (and time unit for the price), the VM type, the limit on the number of VMs of that type allowed inside its region/zone, etc. Some of these parameters are identical for all instance classes originated from the same VM type, but not all of them. For example, the price and limits can be different in different regions.
 
 *Limiting sets*
   A "Limiting set" is a conceptual construct loosely related to regions and availability zones. It allows Malloovia to group different instance classes which share some kind of limit. For example, Amazon imposes a limit on the total number of on-demand VMs which can be running inside a region. Malloovia model this by creating a Limiting set which represents that region and putting all on-demand instance classes which share the region in that limiting set.
@@ -43,10 +43,10 @@ To be able to model such a diversity, malloovia introduces the concept of "Insta
   Each Limiting set contains two kinds of limits: on the total number of VMs in that set, and on the total number of cores running in that set. If one of the limits is set to 0, it means "no limit". This way, this model can be used both for Amazon and Azure.
 
 *Workload predictions*
-  Each application has one expected workload, which is a sequence of numbers, one per timeslot, in the same units than the performances. Malloovia does not provide any mean to obtain this prediction. Instead, it expects it as part of the problem definition.
+  Each application has one expected workload, which is a sequence of numbers, one per timeslot, which represents the number of requests arriving in the timeslot. The length of the timeslot can be one hour, one minute or one second. Malloovia does not provide any mean to obtain this prediction. Instead, it expects it as part of the problem definition.
 
 *Performances*
-   The performance of the app is considered independent on the workload, and dependent only on the instance class in which the app runs. Each instance class is able to sustain a number of requests per hour when running one particular app. Then, to capture this information, a table with the performance for each pair (app, instance classes) is enough.
+   The performance of the app is considered independent on the workload, and dependent only on the instance class in which the app runs. Each instance class is able to sustain a number of requests per timeslot when running one particular app. Then, to capture this information, a table with the performance for each pair (app, instance classes) is enough, along with the time unit of the timeslot.
 
 The combination of the infrastructure description given by *Instance classes* and *Limiting sets*, plus the *Performances* information is what we will call the "System description". The problem to solve by Malloovia is, given a System Description and a Workload Prediction, to find out the allocation of applications to instance classes for each timeslot which minimizes the cost, fulfills the workload, and respects the provider limits.
 
@@ -54,15 +54,15 @@ The combination of the infrastructure description given by *Instance classes* an
 The solver
 ------------------
 
-The above information is used by Malloovia to build a linear programming problem, writing it on disk, and calling an external tool (by default COIN-OR cbc) to solve it. The solution given by the solver is read back into python structures and returned by Malloovia.
+The above information is used by Malloovia to build a linear programming problem, writing it on disk, and calling an external tool (by default `COIN-OR cbc <https://projects.coin-or.org/Cbc>`_) to solve it. The solution given by the solver is read back into python structures and returned by Malloovia.
 
 Malloovia operates in two phases.
 
-* In Phase I, it requires an estimation of the Workload per App for each timeslot along a whole reservation period (usually the timeslot is 1 hour and the reservation period is 1 year), which we call the LTWP (Long-Term Workload Prediction). This phase will produce the optimal allocation which minimizes the cost, fulfills the predicted workload and respect the limits, for a whole reservation period. In particular, it produces as output the number of reserved instances of each type to purchase at the beginning of the reservation period.
+* In Phase I, it requires an estimation of the Workload per App for each timeslot along a whole reservation period (for example, if the timeslot is 1 hour and the reservation period is 1 year, this prediction will be made of 8760 values), which we call the LTWP (Long-Term Workload Prediction). This phase will produce the optimal allocation which minimizes the cost, fulfills the predicted workload and respect the limits, for a whole reservation period. In particular, it produces as output the number of reserved instances of each type to purchase at the beginning of the reservation period.
 
-  The optimality of the solution depends of course on the accuracy of the prediction. If the prediction were exact, Phase I would be enough because it produces the required allocation for each timeslot. However, it is unreasonable to expect a perfect prediction, so the actual workload observed on line, once the system is deployed, will be in general different from the prediction used in Phase I. This is why a Phase II is needed.
+  The optimality of the solution depends of course on the accuracy of the prediction. If the prediction were exact, Phase I would be enough because it produces the required allocation for each timeslot. However, it is unreasonable to expect a perfect prediction, so the actual workload observed on-line, once the system is deployed, will be in general different from the prediction used in Phase I. This is why a Phase II is needed.
 
-* In Phase II, a new optimization problem is run on-line, a few minutes in advance over the next timestlot. This problem uses as input a "System description" (which will be usually the same than the one used in Phase I), the number of reserved instances of each type to use (which is given by the solution of Phase I, since no new reserved instances can be purchased), and the workload prediction for the next timeslot, which is a single number per app, denoted by STWP (Short-Term Workload Prediction)
+* In Phase II, a new optimization problem is run on-line, a few seconds in advance over the next timestlot. This problem uses as input a "System description" (which will be usually the same than the one used in Phase I), the number of reserved instances of each type to use (which is given by the solution of Phase I, since no new reserved instances can be purchased), and the workload prediction for the next timeslot, which is a single number per app, denoted by STWP (Short-Term Workload Prediction).
 
     Depending on the value of the workload prediction for the next timeslot, we are in one of the following cases:
 
@@ -72,7 +72,7 @@ Malloovia operates in two phases.
 
     In any case, a new allocation is obtained at this phase, which is used to allocate VMs for the next timeslot.
 
-Although Phase II should happen in real-time (e.g: being executed each hour, during a year), Malloovia allows also for a "simulation" of this phase, in which the STWP for each timeslot is provided in a list, and then Phase II is executed for each element of that list, and the optimal allocation for each timeslot is stored, and global statistics are provided once the list is exhausted.
+Although Phase II should happen in real-time (e.g: being executed each timeslot, during a year), Malloovia allows also for a "simulation" of this phase, in which the STWP for each future timeslot is provided in a list, and then Phase II is executed for each element of that list, and the optimal allocation for each timeslot is stored, and global statistics are provided once the list is exhausted.
 
 The solution
 ------------

@@ -24,8 +24,8 @@ The data about the cloud infrastructure is stored in different entities:
 
 * :class:`.LimitingSet` defines some constraints imposed by the cloud provider about the maximum number of virtual machines or cores which can be running in a region or availability zone.
 * :class:`.InstanceClass` represents one particular type of virtual machine to be deployed in one particular cloud provider and region/availability
-  zone. 
-  It holds information about the price, limits and whether it is a reserved (prepaid for a whole reservation period) or on-demand (pay-per-use).
+  zone.
+  It holds information about the price (per hour in this example), limits and whether it is a reserved (prepaid for a whole reservation period) or on-demand (pay-per-use).
 
 Example:
 
@@ -36,11 +36,11 @@ Example:
     m3large_z1 = InstanceClass(
         "m3large_r1_z1", name="reserved m3.large in us.east_a",
         limiting_sets=(zone1,), is_reserved=True,
-        price=7, max_vms=20)
+        price=7, time_unit="h", max_vms=20)
     m4xlarge_r1 = InstanceClass(
         "m4xlarge_r1", name="ondemand m4.xlarge in us.east",
         limiting_sets=(region1,), is_reserved=False,
-        price=10, max_vms=10)
+        price=10, time_unit="h", max_vms=10)
 
 
 .. container:: toggle
@@ -68,6 +68,7 @@ Example:
             limiting_sets: [*r1_z1]
             is_reserved: true
             price: 7
+            time_unit: h
             max_vms: 20
           - &m4xlarge_r1
             id: m4xlarge_r1
@@ -75,6 +76,7 @@ Example:
             limiting_sets: [*r1]
             is_reserved: false
             price: 10
+            time_unit: h
             max_vms: 10
 
 Note that in Python the name of the variables which store the data are not required to be the same than the internal ``id`` given to the corresponding objects.
@@ -95,7 +97,7 @@ To specify this information Malloovia provides two additional classes:
 
 * :class:`.App` declares one application, consisting simply in a unique ``id`` and a user-friendly ``name``.
 * :class:`.PerformanceValues` stores the performance of each pair (app, instance_class), from a python dictionary whose keys are the instance classes, containing nested dictionaries whose keys are the apps.
-* :class:`.PerformanceSet` gives a unique ``id`` to a particular case of :class:`.PerformanceValues`.
+* :class:`.PerformanceSet` gives a unique ``id`` to a particular case of :class:`.PerformanceValues`, and makes explicit the time unit used (hours in this example).
 
 Example:
 
@@ -105,6 +107,7 @@ Example:
     app1 = App("a1", "Database")
     performances = PerformanceSet(
         id="example_perfs",
+        time_unit="h",
         values=PerformanceValues({
             m3large_z1: {app0: 12, app1: 500},
             m4xlarge_r1: {app0: 44, app1: 1800}
@@ -131,6 +134,7 @@ Example:
         Performances:
         - &example_perfs
           id: example_perfs
+          time_unit: h
           values:
           - instance_class: *m3large_z1
             app: *a0
@@ -157,7 +161,7 @@ However, malloovia can also perform a simulation of phase II over an arbitrary n
 
 In order to store either the LTWP, or a single-timeslot STWP, or a list of STWP for any number of timeslots (to simulate Phase II), the class :class:`.Workload` is provided.
 
-* A :class:`.Workload` object contains a sequence of numbers (which can be a single one), which is either the LTWP or a series of STWP.
+* A :class:`.Workload` object contains a sequence of numbers (which can be a single one), which is either the LTWP or a series of STWP, and the time unit used (i.e: what is the length of the timeslot, which is one hour in this example).
   It also contains the reference to the application related to that workload, a unique ``id`` and a short description.
 
 Example:
@@ -165,12 +169,15 @@ Example:
 .. testcode::
 
     # Long term workload prediction of each app, for Phase I
+    # Note that all workloads for all apps must use the same time_unit
     ltwp_app0 = Workload(
         "ltwp0", description="rph to the web server", app=app0,
+        time_unit="h",
         values=(201, 203, 180, 220, 190, 211, 199, 204, 500, 200)
     )
     ltwp_app1 = Workload(
         "ltwp1", description="rph to the database", app=app1,
+        time_unit="h",
         values=(2010, 2035, 1807, 2202, 1910, 2110, 1985, 2033, 5050, 1992)
     )
 
@@ -186,11 +193,13 @@ Example:
          - &ltwp0
            id: ltwp0
            description: rph to the web server
+           time_unit: h
            values: [201, 203, 180, 220, 190, 211, 199, 204, 500, 200]
            app: *a0
          - &ltwp1
            id: ltwp1
            description: rph to the database
+           time_unit: h
            values: [2010, 2035, 1807, 2202, 1910, 2110, 1985, 2033, 5050, 1992]
            app: *a1
 
@@ -278,17 +287,19 @@ Phase II
 
 Once phase I is solved, the optimal number of reserved instances found by the solver is used as input for phase II.
 Usually phase II is a new problem, which uses the same infrastructure and performances used in phase I, but a different workload prediction.
+The workload prediction for phase II can use different time units than the ones used in phase I. It is possible for example to have a LTWP per hour, and a STWP per minute.
 
-It is possible to instantiate a :class:`.PhaseII` and then use it to solve a single timeslot, for example, assume that we predict that the
-next timeslot will have a workload of 315 rph for app0, and 1950 rph for app1. The following snippet shows how to find the optimal allocation for such a timeslot:
+It is possible to instantiate a :class:`.PhaseII` and then use it to solve a single timeslot, for example,
+assume that we predict that the next timeslot (hour) will have a workload of 315 rph for app0, and 1950 rph for app1.
+The following snippet shows how to find the optimal allocation for such a timeslot:
 
 
 .. testcode::
 
     phase_ii = PhaseII(problem, phase_i_solution)
     timeslot_solution = phase_ii.solve_timeslot(
-        workloads=(Workload("stwp0", app=app0, description=None, values=(315,)),
-                   Workload("stwp1", app=app1, description=None, values=(1950,))
+        workloads=(Workload("stwp0", app=app0, description=None, time_unit="h", values=(315,)),
+                   Workload("stwp1", app=app1, description=None, time_unit="h", values=(1950,))
                    )
         )
 
@@ -314,22 +325,26 @@ For simulation purposes, :class:`.PhaseII` provides also a ``.solve_period()`` m
 *With predictor argument*
 
     A predictor is a generator which yields a tuple of workloads each time it is called, and that tuple is used to solve a single timeslot.
-    ``PhaseII.solve_period()`` will iterate over that generator until it is exhausted. In this case the values stored in ``problem.workloads`` are not used, being replaced by the values provided by the predictor.
+    ``PhaseII.solve_period()`` will iterate over that generator until it is exhausted.
+    In this case the values stored in ``problem.workloads`` are not used, being replaced by the values provided by the predictor.
 
-    Malloovia provides a dumb predictor, useful for simulation purposes, called :class:`.OmniscentSTWPredictor` which receives as parameter of its constructor a sequence of workloads, like the one stored in ``problem`` for phase I, and returns one tuple at a time when iterated. This can be used
-    to provide different STWP to the same problem. For example:
+    Malloovia provides a dumb predictor, useful for simulation purposes, called :class:`.OmniscientSTWPredictor` which receives as parameter of its constructor a sequence of workloads,
+    like the one stored in ``problem`` for phase I, and returns one tuple at a time when iterated.
+    This can be used to provide different STWP to the same problem. For example:
 
     .. testcode::
 
         phase_ii = PhaseII(problem, phase_i_solution)
-        predictor = OmniscentSTWPredictor((
+        predictor = OmniscientSTWPredictor((
             Workload(
                 "stwp0", description="rph to the web server", app=app0,
-                values=(221, 190, 210, 240, 180, 150, 505, 200, 250, 180)
+                values=(221, 190, 210, 240, 180, 150, 505, 200, 250, 180),
+                time_unit="h"
             ),
             Workload(
                 "stwp1", description="rph to the database", app=app1,
-                values=(2215, 1904, 2100, 2410, 1802, 1504, 5070, 1990, 2510, 1805)
+                values=(2215, 1904, 2100, 2410, 1802, 1504, 5070, 1990, 2510, 1805),
+                time_unit="h"
             )))
         period_solution = phase_ii.solve_period(predictor)
 
