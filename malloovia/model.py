@@ -16,6 +16,7 @@ other entities.
 from collections import namedtuple
 from typing import (Mapping, Tuple)
 import copy
+import sys
 
 def _namedtuple_with_defaults(name, mandatory, **defaults):
     """Creates a namedtuple which can have optional fields, with default
@@ -68,6 +69,14 @@ def _namedtuple_with_defaults(name, mandatory, **defaults):
             print("  {}: {!r}".format(field, value))
 
     _type._inspect = _inspect        # pylint: disable=protected-access
+
+    # fix the module name, for pickle to work in these namedtuple_with_defaults
+    # See original namedtuple code at
+    # https://github.com/python/cpython/blob/3.5/Lib/collections/__init__.py#L437-L444
+    try:
+        _type.__module__ = sys._getframe(1).f_globals.get('__name__', '__main__')
+    except (AttributeError, ValueError):
+        pass
     return _type
 
 

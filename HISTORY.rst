@@ -34,3 +34,8 @@ History
 * Added utility function to read solutions from yaml files.
 * Revised documentation and code quality. Improved README for github.
 * Minor bugfixes.
+
+1.0.1 (2018-01-12)
+------------------
+
+* Bugfix to make all malloovia classes pickable, allowing for multiprocessing.
