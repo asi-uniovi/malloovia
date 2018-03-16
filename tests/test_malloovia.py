@@ -945,6 +945,183 @@ class TestPhaseII(PresetProblemPaths):
         # The global solution is more costly, as much as the solution
         # for the overfull timeslot
 
+class TestPhaseIIGuided(PresetProblemPaths):
+    def test_phase_ii_should_reject_infeasible_phase_i(self):
+        """Trying to solve phase ii when phase i was infeasible should raise ValueError"""
+        # Read problem2, which is infeasible
+        problems = util.read_problems_from_yaml(self.problems["problem2"])
+        assert "example" in problems
+        problem_phase_i = problems['example']
+
+        # Some trivial checks
+        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.workloads[0].values[1] == 32
+
+        phaseI = phases.PhaseI(problem_phase_i)
+        solution = phaseI.solve()
+
+        assert solution.solving_stats.algorithm.status == Status.infeasible
+
+        with pytest.raises(ValueError, match="phase_i_solution passed to PhaseII is not optimal"):
+            phaseII = phases.PhaseIIGuided(problem=problem_phase_i, phase_i_solution=solution)
+
+    def test_phase_ii_complete(self):
+        """Solve phaseI and phaseII"""
+        problems = util.read_problems_from_yaml(self.problems["problem1"])
+        assert "example" in problems
+        problem = problems['example']
+
+        solution_i = phases.PhaseI(problem).solve()
+        rsv_instances = solution_i.reserved_allocation.vms_number[0]
+        assert rsv_instances == 6
+
+        phase_ii = phases.PhaseIIGuided(
+            problem=problem,
+            phase_i_solution=solution_i
+        )
+        solution_ii = phase_ii.solve_period()
+
+        timeslots = len(problem.workloads[0].values)
+        assert solution_ii is not None
+        assert len(solution_ii.allocation.values) == timeslots
+        # The first and last timeslot have exactly the same workload,
+        # so they should have exactly the same solution
+        assert (solution_ii.allocation.values[0]
+                is solution_ii.allocation.values[-1])
+
+        # Since we used the same STWP than LTWP, each timeslot should
+        # have the same allocation than in phaseI
+        for wl_tupl, alloc in zip(solution_ii.allocation.workload_tuples,
+                                solution_ii.allocation.values):
+            phase_i_index = solution_i.allocation.workload_tuples.index(wl_tupl)
+            phase_i_alloc = solution_i.allocation.values[phase_i_index]
+            assert phase_i_alloc == alloc
+
+        # Also both solution should have the same cost
+        assert (solution_ii.global_solving_stats.optimal_cost
+                == solution_i.solving_stats.optimal_cost)
+
+    def test_phase_ii_by_timeslot(self):
+        """Solve phaseI and phaseII using solve_timeslot() repeatdly"""
+        problems = util.read_problems_from_yaml(self.problems["problem1"])
+        assert "example" in problems
+        problem = problems['example']
+
+        solution_i = phases.PhaseI(problem).solve()
+        rsv_instances = solution_i.reserved_allocation.vms_number[0]
+        assert rsv_instances == 6
+
+        phase_ii = phases.PhaseIIGuided(
+            problem=problem,
+            phase_i_solution=solution_i
+        )
+
+        predictor = phases.OmniscientSTWPredictor(problem.workloads)
+        
+        solutions = []
+        for workloads in predictor: 
+            solutions.append(phase_ii.solve_timeslot(workloads=workloads))
+
+        solution_ii = phase_ii._aggregate_solutions(solutions)
+
+        timeslots = len(problem.workloads[0].values)
+        assert solution_ii is not None
+        assert len(solution_ii.allocation.values) == timeslots
+        # The first and last timeslot have exactly the same workload,
+        # so they should have exactly the same solution
+        assert (solution_ii.allocation.values[0]
+                is solution_ii.allocation.values[-1])
+
+        # Since we used the same STWP than LTWP, each timeslot should
+        # have the same allocation than in phaseI
+        for wl_tupl, alloc in zip(solution_ii.allocation.workload_tuples,
+                                solution_ii.allocation.values):
+            phase_i_index = solution_i.allocation.workload_tuples.index(wl_tupl)
+            phase_i_alloc = solution_i.allocation.values[phase_i_index]
+            assert phase_i_alloc == alloc
+
+        # Also both solution should have the same cost
+        assert (solution_ii.global_solving_stats.optimal_cost
+                == solution_i.solving_stats.optimal_cost)
+
+    def test_phase_ii_single_timeslot_minimum_on_demand(self):
+        """Solve phaseI and phaseII using solve_timeslot() and fixing minimum on-demand VMs"""
+        problems = util.read_problems_from_yaml(self.problems["problem1"])
+        assert "example" in problems
+        problem = problems['example']
+
+        solution_i = phases.PhaseI(problem).solve()
+        rsv_instances = solution_i.reserved_allocation.vms_number[0]
+        assert rsv_instances == 6
+
+        phase_ii = phases.PhaseIIGuided(
+            problem=problem,
+            phase_i_solution=solution_i
+        )
+
+        predictor = phases.OmniscientSTWPredictor(problem.workloads)
+       
+        ondemand_ics = [ic for ic in problem.instance_classes if not ic.is_reserved]
+        ondemand_preallocation = ReservedAllocation((ondemand_ics[0],), (3,)) # At least 3
+        workloads = list(predictor)[0] 
+
+        sol_timeslot = phase_ii.solve_timeslot(workloads=workloads,
+                                               preallocation=ondemand_preallocation)
+        assert sol_timeslot.reserved_allocation.vms_number[0] == 6
+        alloc = sol_timeslot.allocation.values[0]
+        assert alloc[0][0] + alloc[1][0] == 6   # Reserved
+        assert alloc[0][1] + alloc[1][1] == 3   # ondemand
+
+
+    def test_phase_ii_with_unfeasible_timeslots(self):
+        """Solves phaseI and then uses for phase II a different STWP which causes
+        unfeasible timeslots"""
+        problems = util.read_problems_from_yaml(self.problems["problem1"])
+        assert "example" in problems
+        problem = problems['example']
+
+        solution_i = phases.PhaseI(problem).solve()
+        rsv_instances = solution_i.reserved_allocation.vms_number[0]
+        assert rsv_instances == 6
+
+        # Create a phase_ii_problem from phase I problem, replacing
+        # the workload for a new one which has a very high load for app0 at
+        # timeslot 1, which will cause that timeslot to be infeasible
+        app0, app1 = (wl.app for wl in problem.workloads)
+        phase_ii_problem = problem._replace(
+            workloads = (
+                Workload("wl_app0", description="Test", app=app0, values=(30, 270, 30, 30),
+                         time_unit="h"),
+                Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
+                         time_unit="h")
+            )
+        )
+
+        phase_ii = phases.PhaseIIGuided(
+            problem=phase_ii_problem,
+            phase_i_solution=solution_i
+        )
+        solution_ii = phase_ii.solve_period()
+        assert solution_ii.global_solving_stats.status == Status.overfull
+
+        timeslots = len(problem.workloads[0].values)
+        assert solution_ii is not None
+        assert len(solution_ii.allocation.values) == timeslots
+        # The first and last timeslot have exactly the same workload,
+        # so they should have exactly the same solution
+        assert (solution_ii.allocation.values[0]
+                is solution_ii.allocation.values[-1])
+
+        # Timeslot 1 is overfull
+        assert solution_ii.solving_stats[1].algorithm.status == Status.overfull
+        # The overfull timeslot has a solution with cost 242
+        assert solution_ii.solving_stats[1].optimal_cost == 242
+        # And assigns 4 reserved an 20 on demand instances to app0
+        assert solution_ii.allocation.values[1][0] == [4, 20]
+
+        # The global solution is more costly, as much as the solution
+        # for the overfull timeslot
+
 class TestModelClasses(PresetProblemPaths):
 
     def test_MallooviaHistogram(self):
