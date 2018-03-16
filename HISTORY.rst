@@ -39,3 +39,9 @@ History
 ------------------
 
 * Bugfix to make all malloovia classes pickable, allowing for multiprocessing.
+
+1.1.0 (2018-03-16)
+------------------
+
+* New class ``PhaseIIGuided`` which allows to solve a single timeslot using
+  a given allocation which specifies the minimum number of VMs to keep running.

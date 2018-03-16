@@ -65,6 +65,9 @@ The solver operates in two phases.
 .. autoclass:: malloovia.PhaseII
     :members:
 
+.. autoclass:: malloovia.PhaseIIGuided
+    :members:
+
 Solutions
 ----------
 

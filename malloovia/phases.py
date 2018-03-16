@@ -561,4 +561,4 @@ def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[f
     return solving_time, malloovia_stats
 
 
-__all__ = ['PhaseI', 'PhaseII', 'STWPredictor', 'OmniscientSTWPredictor']
+__all__ = ['PhaseI', 'PhaseII', 'PhaseIIGuided' , 'STWPredictor', 'OmniscientSTWPredictor']
