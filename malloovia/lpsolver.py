@@ -266,8 +266,12 @@ class MallooviaLp:
 
         For every ``ic`` in ``self.fixed_vms`` a restriction is
         added which forces the total number of those instance classes in
-        the solution to be equal to a given value. This is used mainly
-        in phase II to ensure that reserved instances are fixed."""
+        the solution to be at equal to a given value for reserved instances,
+        and at least equal to a given value for on-demand instances.
+        This is used mainly in phase II to ensure that reserved instances
+        are fixed, or to allow to keep at least some number of on-demand
+        instances running from previous timeslots, when using "guided"
+        strategies"."""
 
         if self.fixed_vms is None:      # No fixed instances, we are in PhaseI
             return
@@ -280,8 +284,8 @@ class MallooviaLp:
             else:
                 for load in self.load_hist.keys():
                     self.pulp_problem += lpSum(self.cooked.map_dem[app, ins, load]
-                                               for app in self.system.apps) == value, \
-                                 "On-demand instance class {} is fixed to {} "\
+                                               for app in self.system.apps) >= value, \
+                                 "On-demand instance class {} is at least {} "\
                                  "when workload is {}".format(ins, value, load)
 
     def limit_instances_per_limiting_set_restriction(self) -> None:  # pylint: disable=invalid-name

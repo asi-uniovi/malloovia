@@ -322,6 +322,112 @@ class PhaseII:
         )
 
 
+class PhaseIIGuided(PhaseII):
+    """Extends :class:`PhaseII` class to override the :func:`self.solve_timeslot()` 
+    method, to allow it to receive a `preallocation` parameter which enforces some
+    minimum number of on-demand instances and a fixed number of reserved instances.
+    """
+    def solve_timeslot(self,
+                       workloads: Sequence[Workload],
+                       system: System=None,
+                       solver: Any=None,
+                       preallocation: ReservedAllocation=None):
+        """Solve one timeslot of phase II for the workload received.
+
+        The solution is stored in the field 'self._solutions' using the tuples
+        (system, preallocation, workloads) as keys. If a solution for that key
+        is already present, the same solution is returned.
+
+        Args:
+            workloads: tuple with one Workload per app. Only the first value in the
+                 ``values`` field of each workload is used, as the prediction for
+                 the timeslot to solve.
+            system: the part of the problem which does not depend on the workload.
+                If ``None``, the system will be extracted from ``self.problem``.
+            solver: Pulp solver. It can have custom arguments, such
+                as fracGap and maxSeconds.
+            preallocation: allocation for a minimum number of on-demand 
+                instances, to keep active from previous timeslots. An external
+                driver should compute these numbers and pass them to the 
+                solver through this parameter.
+
+        Returns:
+            The solution for that timeslot, stored in a :class:`SolutionI` object.
+        """
+        if system is None:
+            system = system_from_problem(self.problem)
+
+        if preallocation is None:
+            preallocation = self.phase_i_solution.reserved_allocation
+        else:
+            res_alloc = self.phase_i_solution.reserved_allocation
+            res_ics = res_alloc.instance_classes
+            res_vms_number = res_alloc.vms_number
+            preallocation = ReservedAllocation(
+                instance_classes= res_ics + preallocation.instance_classes,
+                vms_number = res_vms_number + preallocation.vms_number)
+
+        if (system, preallocation, workloads) in self._solutions:
+            # This workload was already solved. Nothing to be done
+            return self._solutions[system, preallocation, workloads]
+
+        if not self.reuse_rsv:
+            raise NotImplementedError("Solving without reuse is not implemented")
+
+        if solver is None:   # default to class solver
+            solver = self.solver
+
+        # Instantiate problem
+        creation_time, malloovia_lp = _create_problem(
+            system=system,
+            workloads=workloads,
+            preallocation=preallocation,
+            relaxed=False
+        )
+        solving_time, malloovia_stats = _solve_problem(malloovia_lp, gcd=False, solver=solver)
+
+        # Retrieve the solution and store it in a private property
+        allocation = None
+        optimal_cost = None
+        if malloovia_stats.status == Status.optimal:
+            allocation = malloovia_lp.get_allocation()
+            optimal_cost = malloovia_lp.get_cost()
+        else:
+            sol = _solve_dual_problem(
+                system=system,
+                workloads=workloads,
+                preallocation=preallocation,
+                solver=solver)
+            creation_time += sol.solving_stats.creation_time
+            solving_time += sol.solving_stats.solving_time
+            if sol.solving_stats.algorithm.status == Status.optimal:
+                malloovia_stats = malloovia_stats._replace(status=Status.overfull)
+            else:
+                malloovia_stats = malloovia_stats._replace(
+                    status=sol.solving_stats.algorithm.status)
+            optimal_cost = sol.solving_stats.optimal_cost
+            allocation = sol.allocation
+
+        solving_stats = SolvingStats(
+            algorithm=malloovia_stats,
+            creation_time=creation_time,
+            solving_time=solving_time,
+            optimal_cost=optimal_cost
+        )
+
+        valid_id = "sol_for_{}".format(
+            "_".join(str(wl.values[0]) for wl in workloads)
+        )
+        self._solutions[system, preallocation, workloads] = SolutionI(
+            id=valid_id,
+            problem=self.problem,
+            solving_stats=solving_stats,
+            reserved_allocation=preallocation,
+            allocation=allocation
+        )
+
+        return self._solutions[system, preallocation, workloads]
+
 
 def _solve_dual_problem(system: System,
                         workloads: Sequence[Workload],
