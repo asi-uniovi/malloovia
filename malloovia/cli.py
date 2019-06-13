@@ -207,7 +207,7 @@ def solve(problems_file, phase_i_id, phase_ii_id,
         root, ext = os.path.splitext(problems_file)
         if ext == ".gz":
             root, ext = os.path.splitext(root)
-        output_file = root + "-sol" + ext
+        output_file = str(root) + "-sol" + str(ext)
     click.echo("Writing solutions in {}...".format(output_file), nl=False)
     t_ini = time.process_time()
     output = solutions_to_yaml(solutions)

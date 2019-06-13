@@ -90,7 +90,7 @@ class MallooviaLp:
             assert len(preallocation.instance_classes) == len(preallocation.vms_number),\
                 "preallocation is wrong, the number of elements in instance_classes and in "\
                 "vms_number must be the same"
-            self.fixed_vms = dict(zip(*preallocation))
+            self.fixed_vms = dict(zip(preallocation.instance_classes, preallocation.vms_number))
         self.relaxed = relaxed
         self.pulp_problem = None
         self.load_hist = get_load_hist_from_load(self.workloads)
@@ -628,6 +628,9 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
         except:
             pass
         return None
+
+    # To avoid mypy warning
+    variablesNames = constraintsNames = objectiveName = None
 
     if not self.executable(self.path):
         raise PulpSolverError("Pulp: cannot execute %s cwd: %s" %

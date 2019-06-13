@@ -2,13 +2,14 @@
 
 """Classes for storing and reporting solutions of malloovia problems."""
 
-from typing import Union
+from typing import (Union, NamedTuple, Optional, List, Sequence, Tuple)
 from enum import IntEnum
 from functools import singledispatch
 import pulp
 
 from .model import (
-    _namedtuple_with_defaults, PerformanceSet
+    remove_namedtuple_defaultdoc, PerformanceSet, 
+    InstanceClass, App, Problem,
 )
 
 class Status(IntEnum):
@@ -27,16 +28,16 @@ class Status(IntEnum):
 def pulp_to_malloovia_status(status: int) -> Status:
     """Receives a PuLP status code and returns a Malloovia :class:`Status`."""
     if status == pulp.LpStatusInfeasible:
-        status = Status.infeasible
+        r = Status.infeasible
     elif status == pulp.LpStatusNotSolved:
-        status = Status.aborted
+        r = Status.aborted
     elif status == pulp.LpStatusOptimal:
-        status = Status.optimal
+        r = Status.optimal
     elif status == pulp.LpStatusUndefined:
-        status = Status.integer_infeasible
+        r = Status.integer_infeasible
     else:
-        status = Status.unknown
-    return status
+        r = Status.unknown
+    return r
 
 
 class MallooviaHistogram(dict):
@@ -58,163 +59,184 @@ class MallooviaHistogram(dict):
         return "MallooviaHistogram with %d values" % len(self)
 
 
-# pylint doesn't like namedtuples, because their appear as variables
-# but the name is class-like
-# pylint: disable=invalid-name
-MallooviaStats = _namedtuple_with_defaults(
-    "MallooviaStats",
-    ['gcd', 'status'],
-    gcd_multiplier=1.0,
-    frac_gap=None,
-    max_seconds=None,
-    lower_bound=None
-)
-"""Stores data related to the Malloovia solver."""
-MallooviaStats.gcd.__doc__ = "bool: whether GCD technique was used or not."
-MallooviaStats.status.__doc__ = ":class:`Status`: status of the solution."
-MallooviaStats.gcd_multiplier.__doc__ = """\
-    float: the multiplier used in GCD technique (defaults to 1)."""
-MallooviaStats.frac_gap.__doc__ = """\
-    float: the fracGap passed to cbc solver (defaults to None)."""
-MallooviaStats.max_seconds.__doc__ = """\
-    float: the maxSeconds passed to cbc solver (defaults to None)."""
-MallooviaStats.lower_bound.__doc__ = """\
-    float: the lower bound of the solution as reported by cbc when the
-        optimal solution is not available (defaults to None)."""
+@remove_namedtuple_defaultdoc
+class MallooviaStats(NamedTuple):
+    """Stores data related to the Malloovia solver."""
+    gcd: bool
+    "bool: whether GCD technique was used or not."
 
-SolvingStats = _namedtuple_with_defaults(
-    "SolvingStats",
-    ["algorithm",
-     "creation_time", "solving_time",
-     "optimal_cost"
-    ])
-"""Stores the statistics that can be gathered from a solution
-of Phase I, or one single timeslot in Phase II."""
-SolvingStats.algorithm.__doc__ = """\
-    :class:`MallooviaStats`: additional info related to the particular
+    status: Status
+    ":class:`.Status`: status of the solution."
+
+    gcd_multiplier: float = 1.0
+    """float: the multiplier used in GCD technique (defaults to 1.0)."""
+
+    frac_gap: Optional[float] = None
+    """float: the fracGap passed to cbc solver (defaults to None)."""
+
+    max_seconds: Optional[float] = None
+    """float: the maxSeconds passed to cbc solver (defaults to None)."""
+
+    lower_bound: Optional[float] = None
+    """float: the lower bound of the solution as reported by cbc when the
+            optimal solution is not available (defaults to None)."""
+
+
+@remove_namedtuple_defaultdoc
+class SolvingStats(NamedTuple):
+    """Stores the statistics that can be gathered from a solution
+    of Phase I, or one single timeslot in Phase II."""
+
+    algorithm: MallooviaStats
+    """:class:`.MallooviaStats`: additional info related to the particular
         algorithm used to solve the problem."""
-SolvingStats.creation_time.__doc__ = """\
-    float: time required to create the LP problem."""
-SolvingStats.solving_time.__doc__ = """\
-    float: time required to solve the LP problem."""
-SolvingStats.optimal_cost.__doc__ = """\
-    float: optimal cost as reported by the LP solver."""
 
-GlobalSolvingStats = _namedtuple_with_defaults(
-    "GlobalSolvingStats",
-    ["creation_time", "solving_time", "optimal_cost", "status"],
-    default_algorithm=None
-    )
-"""Stores the global statistics for Phase II, which are a sum of the
-statistics of each timeslot."""
-GlobalSolvingStats.creation_time.__doc__ = """\
-    float: sum of the time required to create the LP problem
-        for each timeslot."""
-GlobalSolvingStats.solving_time.__doc__ = """\
-    float: sum of the time required to solve the LP problem
-        for each timeslot."""
-GlobalSolvingStats.optimal_cost.__doc__ = """\
-    float: sum of the optimal costs as reported by the LP problem
-        for each timeslot."""
-GlobalSolvingStats.status.__doc__ = """\
-    :class:`Status`: global status computed from the status of
-        each timeslot."""
+    creation_time: float
+    """float: time required to create the LP problem."""
 
-ReservedAllocation = _namedtuple_with_defaults(
-    "ReservedAllocation",
-    ["instance_classes", "vms_number"]
-)
-"""Stores the number of reserved instances to allocate during the whole reservation
-period."""
-ReservedAllocation.instance_classes.__doc__ = """\
-    List[:class:`InstanceClass`]: list of reserved instance classes
-        in the allocation."""
-ReservedAllocation.vms_number.__doc__ = """\
-    List[float]: list of numbers, representing the number of instance classes
+    solving_time: float
+    """float: time required to solve the LP problem."""
+
+    optimal_cost: float
+    """float: optimal cost as reported by the LP solver."""
+
+
+@remove_namedtuple_defaultdoc
+class GlobalSolvingStats(NamedTuple):
+    """Stores the global statistics for Phase II, which are a sum of the
+    statistics of each timeslot."""
+
+    creation_time: float
+    """float: sum of the time required to create the LP problem
+           for each timeslot."""
+
+    solving_time: float
+    """float: sum of the time required to solve the LP problem
+           for each timeslot."""
+
+    optimal_cost: float
+    """float: sum of the optimal costs as reported by the LP problem
+           for each timeslot."""
+
+    status: Status
+    """:class:`.Status`: global status computed from the status of
+           each timeslot."""
+
+    default_algorithm: Optional[str] = None
+    """Currently unused"""
+
+@remove_namedtuple_defaultdoc
+class ReservedAllocation(NamedTuple):
+    """Stores the number of reserved instances to allocate during the whole reservation
+    period."""
+
+    instance_classes: List[InstanceClass]
+    """List[:class:`.InstanceClass`]: list of reserved instance classes
+           in the allocation."""
+    vms_number: List[float]
+    """List[float]: list of numbers, representing the number of instance classes
         to be reserved of each type. The corresponding instance class is obtained
         from the ``instance_classes`` attribute using the same index."""
 
 
-AllocationInfo = _namedtuple_with_defaults(
-    "AllocationInfo",
-    ["apps", "instance_classes", "workload_tuples", "values", "units"],
-    repeats=[]
-)
-"""Stores the allocation for a series of timeslots. It can be a single
-timeslot, or the sequence of allocations for the whole reservation period."""
-AllocationInfo.values.__doc__ = """\
-     Sequence[Sequence[Sequence[float]]]: contains a list with one element
-        per timeslot. Each element in this sequence is a list (with one element
-        per app), which is in turn a list (with one element per instance class).
-        These values are numbers which can represent the number of instance
-        classes of that type to be allocated for that app during that timeslot,
-        or the cost associated with these instance classes, or the performance
-        given by these instance classes, depending on the ``units`` field.
-        So, for example, if ``units`` is ``"vms"``, then ``values[2][1][3]``
-        represents the number of VMs of the instance class 3 to be allocated
-        for application 1 during the timseslot 2.
+@remove_namedtuple_defaultdoc
+class AllocationInfo(NamedTuple):
+    """Stores the allocation for a series of timeslots. It can be a single
+    timeslot, or the sequence of allocations for the whole reservation period."""
 
-        Note that, if the allocation contains a single timeslot, it is still
-        necessary to specify the index (0) in the first dimension,
-        e.g. ``vms_number[0][1][3]``.
+    values: Sequence[Sequence[Tuple[float]]]
+    """Sequence[Sequence[Tuple[float]]]: contains a list with one element
+           per timeslot. Each element in this sequence is a list (with one element
+           per app), which is in turn a list (with one element per instance class).
+           These values are numbers which can represent the number of instance
+           classes of that type to be allocated for that app during that timeslot,
+           or the cost associated with these instance classes, or the performance
+           given by these instance classes, depending on the ``units`` field.
+           So, for example, if ``units`` is ``"vms"``, then ``values[2][1][3]``
+           represents the number of VMs of the instance class 3 to be allocated
+           for application 1 during the timseslot 2.
+   
+           Note that, if the allocation contains a single timeslot, it is still
+           necessary to specify the index (0) in the first dimension,
+           e.g. ``vms_number[0][1][3]``.
+   
+           To match the indexes in those arrays to actual instance classes and
+           apps, the attributes ``instance_classes`` and ``apps`` should be used.
+           So, for the above example, the application would be ``apps[1]`` and
+           the instance class would be ``instance_classes[3]``. If required,
+           the workload for that particular timeslot (2) can also be retrieved from
+           ``workload_tuples[2]``."""
 
-        To match the indexes in those arrays to actual instance classes and
-        apps, the attributes ``instance_classes`` and ``apps`` should be used.
-        So, for the above example, the application would be ``apps[1]`` and
-        the instance class would be ``instance_classes[3]``. If required,
-        the workload for that particular timeslot (2) can also be retrieved from
-        ``workload_tuples[2]``."""
-AllocationInfo.units.__doc__ = """\
-    str: a string identifying the kind of information stored in the ``values``
-        field. It can be ``"vms"`` (number of VM instances), ``"cost"`` or any
-        currency (cost of these instances) or ``"rph"`` (performance of these
-        instances)."""
-AllocationInfo.apps.__doc__ = """\
-    Sequence[:class:`App`]: is a list of apps to give meaning to the second
-        index in ``values``."""
-AllocationInfo.instance_classes.__doc__ = """\
-    Sequence[:class:`InstanceClass`]: is a list of instance classes to give
-        meaning to the third index in ``values``."""
-AllocationInfo.workload_tuples.__doc__ = """\
-    Sequence[Tuple[float]]: is a list of workload tuples to give meaning to the
-        first index in ``values``. Each element is a tuple with as many values
-        as apps, being each one the workload for each app."""
+    units: str
+    """str: a string identifying the kind of information stored in the ``values``
+           field. It can be ``"vms"`` (number of VM instances), ``"cost"`` or any
+           currency (cost of these instances) or ``"rph"`` (performance of these
+           instances)."""
+
+    apps: Sequence[App]
+    """Sequence[:class:`.App`]: is a list of apps to give meaning to the second
+           index in ``values``."""
+
+    instance_classes: Sequence[InstanceClass]
+    """Sequence[:class:`.InstanceClass`]: is a list of instance classes to give
+           meaning to the third index in ``values``."""
+
+    workload_tuples: Sequence[Tuple[float]]
+    """Sequence[Tuple[float]]: is a list of workload tuples to give meaning to the
+           first index in ``values``. Each element is a tuple with as many values
+           as apps, being each one the workload for each app."""
+
+    repeats: List[int] = []
+    """List[int]: number of repetitions of each workload_tuple, for the case
+    in which the allocation is per load-level (histogram). It can be an empty
+    list (default value) for the case in which the allocation is per time-slot."""
 
 
-SolutionI = _namedtuple_with_defaults(
-    "SolutionI",
-    ["id", "problem", "solving_stats", "allocation", "reserved_allocation"],
-)
-"""Stores a solution for phase I."""
-SolutionI.id.__doc__ = "str: arbitrary id for this object."
-SolutionI.problem.__doc__ = """\
-    :class:`Problem`: reference to the problem which originated this solution."""
-SolutionI.solving_stats.__doc__ = """\
-    :class:`SolvingStats`: statistics about this solution."""
-SolutionI.allocation.__doc__ = """\
-    :class:`AllocationInfo`: allocation provided in this solution."""
-SolutionI.reserved_allocation.__doc__ = """\
-    :class:`ReservedAllocation`: allocation for reserved instances only."""
+@remove_namedtuple_defaultdoc
+class SolutionI(NamedTuple):
+    """Stores a solution for phase I."""
 
-SolutionII = _namedtuple_with_defaults(
-    "SolutionII",
-    ["id", "problem", "solving_stats", "global_solving_stats",
-     "previous_phase", "allocation"],
-)
-"""Stores a solution for phase II."""
-SolutionII.id.__doc__ = "str: arbitrary id for this object."
-SolutionII.problem.__doc__ = """\
-    :class:`Problem`: reference to the problem which originated this solution."""
-SolutionII.solving_stats.__doc__ = """\
-    :Sequence[class:`SolvingStats`]: list of the SolvingStats for
+    id: str
+    "str: arbitrary id for this object."
+
+    problem: Problem
+    """:class:`.Problem`: reference to the problem which originated
+          this solution."""
+
+    solving_stats: SolvingStats
+    """:class:`.SolvingStats`: statistics about this solution."""
+
+    allocation: AllocationInfo
+    """:class:`.AllocationInfo`: allocation provided in this solution."""
+
+    reserved_allocation: ReservedAllocation
+    """:class:`.ReservedAllocation`: allocation for reserved instances only."""
+
+@remove_namedtuple_defaultdoc
+class SolutionII(NamedTuple):
+    """Stores a solution for phase II."""
+
+    id: str
+    "str: arbitrary id for this object."
+
+    problem: Problem
+    """:class:`.Problem`: reference to the problem which originated
+          this solution."""
+
+    solving_stats: SolvingStats
+    """:Sequence[class:`.SolvingStats`]: list of the SolvingStats for
         each timeslot."""
-SolutionII.global_solving_stats.__doc__ = """\
-    :class:`GlobalSolvingStats`: summary of the solving stats."""
-SolutionII.previous_phase.__doc__ = """\
-    :class:`SolutionI`: reference to the solution of the previous phase."""
-SolutionII.allocation.__doc__ = """\
-    :class:`AllocationInfo`: allocation for the whole period, built from the
+
+    global_solving_stats: GlobalSolvingStats
+    """:class:`.GlobalSolvingStats`: summary of the solving stats."""
+
+    previous_phase: SolutionI
+    """:class:`.SolutionI`: reference to the solution of the previous phase."""
+
+    allocation: AllocationInfo
+    """:class:`.AllocationInfo`: allocation for the whole period, built from the
         allocations of the individual timeslots."""
+
 
 @singledispatch
 def compute_allocation_cost(alloc: AllocationInfo) -> AllocationInfo:

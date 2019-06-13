@@ -1,6 +1,6 @@
 """Utility functions to save and load Malloovia problem definitions"""
 
-from typing import (Mapping, Sequence, Tuple, Union, Any, List)
+from typing import (Mapping, Dict, Sequence, Tuple, Union, Any, List, Iterable)
 import os.path
 import gzip
 import urllib.request
@@ -88,7 +88,7 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
     return problems
 
 def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
-                               ) -> Tuple[Mapping[str, Problem], Mapping[Any, Any]]:
+                               ) -> Tuple[Mapping[str, Problem], Dict[Any, Any]]:
     """Takes data from a dictionary with a particular structure, and stores it in
     several Problem instances. It also returns another dictionary that can be used to
     translate between YAML ids and the corresponding objects.
@@ -641,7 +641,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         """Generates a comma separated list of yaml references using the id"""
         return ", ".join("*{}".format(element.id) for element in lst)
 
-    def list_to_yaml(lst: Sequence[Any]) -> str:
+    def list_to_yaml(lst: Iterable[Any]) -> str:
         """Generates a comma separated list of python objects"""
         return ", ".join(str(element) for element in lst)
 
@@ -757,7 +757,7 @@ def _yamlize(value: Any) -> Any:
 
     return value
 
-def get_schema() -> Mapping[str, Any]:
+def get_schema() -> Dict[str, Any]:
     """Returns Malloovia's json schema which can be used to validate the
     problem and solution files"""
 
@@ -771,7 +771,7 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                              use_ids=True,
                              include_timeslot=True,
                              include_workloads=True,
-                             include_repeats=True) -> Sequence[Mapping[Any, Any]]:
+                             include_repeats=True) -> Iterable[Mapping[Any, Any]]:
     """Converts the :class:`AllocationInfo` structure to a sequence of dicts, which
     are more convenient for analysis with pandas. Each element of the returned
     sequence is a python dictionary whose keys and values are:
