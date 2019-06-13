@@ -504,7 +504,9 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         assert solution.solving_stats.optimal_cost is None
         assert solution.solving_stats.algorithm.lower_bound is None
 
-    def test_problem_with_undefined_solution(self):
+    # Next test was disabled becase PuLP 1.6.10+ fixed the bug, and thus
+    # this problem does not cause "Undefined" status as before
+    def disabled_test_problem_with_undefined_solution(self):
         "Detect cbc returns '-3' error, which means integer infeasible"
         amazon_dem = LimitingSet("Cloud1", name="Cloud1", max_vms=20, max_cores=15)
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20, max_cores=10)
