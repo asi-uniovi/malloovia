@@ -45,6 +45,14 @@ autoclass_content = 'both'
 doctest_test_doctest_blocks = ''
 doctest_global_setup = "from malloovia import *"
 
+
+autodoc_default_options = {
+    'member-order': 'bysource',
+    'undoc-members': True,
+    'members': True,
+}
+
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

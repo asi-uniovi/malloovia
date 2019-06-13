@@ -64,3 +64,10 @@ docs/_build/
 /data/raw
 /data/interim
 /data/external
+problemas-GECON/
+
+# mypy caches
+.mypy_cache/
+
+# Visual Studio Code local config
+.vscode/

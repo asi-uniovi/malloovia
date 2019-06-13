@@ -1,6 +1,6 @@
 # Malloovia
 
-[<img src="https://img.shields.io/badge/python->=3.5-blue.svg?style=flat-square">](https://www.python.org/downloads/) [<img src="https://img.shields.io/pypi/v/malloovia.svg">](https://pypi.python.org/pypi/malloovia) [<img src="http://readthedocs.org/projects/malloovia/badge/?version=latest" alt="Documentation Status">](http://malloovia.readthedocs.io/en/latest/?badge=latest)  [<img src="https://travis-ci.org/asi-uniovi/malloovia.svg?branch=master" alt=" Build status">](https://travis-ci.org/asi-uniovi/malloovia)
+[<img src="https://img.shields.io/badge/python->=3.6-blue.svg?style=flat-square">](https://www.python.org/downloads/) [<img src="https://img.shields.io/pypi/v/malloovia.svg">](https://pypi.python.org/pypi/malloovia) [<img src="http://readthedocs.org/projects/malloovia/badge/?version=latest" alt="Documentation Status">](http://malloovia.readthedocs.io/en/latest/?badge=latest)  [<img src="https://travis-ci.org/asi-uniovi/malloovia.svg?branch=master" alt=" Build status">](https://travis-ci.org/asi-uniovi/malloovia)
 
 
 Use linear programming to allocate applications to cloud infrastructure.
