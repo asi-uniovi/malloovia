@@ -1,8 +1,8 @@
 # coding: utf-8
-# import pandas as pd
+#  import pandas as pd
 """Malloovia interface to LP solver"""
 
-from typing import (Sequence, List, Any)
+from typing import Sequence, List, Any
 from itertools import product as cartesian_product
 from inspect import ismethod
 from collections import namedtuple
@@ -10,17 +10,31 @@ import os
 
 import pulp  # type: ignore
 
-from pulp import (LpContinuous, LpInteger, LpVariable, lpSum,
-                  LpProblem, LpMinimize, LpMaximize, PulpSolverError,
-                  COIN_CMD, log, subprocess)
+from pulp import (
+    LpContinuous,
+    LpInteger,
+    LpVariable,
+    lpSum,
+    LpProblem,
+    LpMinimize,
+    LpMaximize,
+    PulpSolverError,
+    COIN_CMD,
+    log,
+    subprocess,
+)
 
 from .solution_model import (
-    MallooviaHistogram, ReservedAllocation, AllocationInfo,
-    Status, pulp_to_malloovia_status
-    )
-from .model import (System, Workload, App, TimeUnit)
+    MallooviaHistogram,
+    ReservedAllocation,
+    AllocationInfo,
+    Status,
+    pulp_to_malloovia_status,
+)
+from .model import System, Workload, App, TimeUnit
 
-LpProblem.bestBound = None   # Add new attribute to pulp problems
+LpProblem.bestBound = None  # Add new attribute to pulp problems
+
 
 class MallooviaLp:
     """Solves the allocation problem, using Linear Programming.
@@ -61,10 +75,14 @@ class MallooviaLp:
     You can use object's property ``pulp_problem`` to access the PuLP problem object
     which represents the linear programming problem, to inspect or save it if required.
     """
-    def __init__(self, system: System,
-                 workloads: Sequence[Workload],
-                 preallocation: ReservedAllocation=None,
-                 relaxed: bool=False) -> None:
+
+    def __init__(
+        self,
+        system: System,
+        workloads: Sequence[Workload],
+        preallocation: ReservedAllocation = None,
+        relaxed: bool = False,
+    ) -> None:
         """Constructor:
 
         Args:
@@ -88,10 +106,15 @@ class MallooviaLp:
         if preallocation is None:
             self.fixed_vms = None
         else:
-            assert len(preallocation.instance_classes) == len(preallocation.vms_number),\
-                "preallocation is wrong, the number of elements in instance_classes and in "\
+            assert len(preallocation.instance_classes) == len(
+                preallocation.vms_number
+            ), (
+                "preallocation is wrong, the number of elements in instance_classes and in "
                 "vms_number must be the same"
-            self.fixed_vms = dict(zip(preallocation.instance_classes, preallocation.vms_number))
+            )
+            self.fixed_vms = dict(
+                zip(preallocation.instance_classes, preallocation.vms_number)
+            )
         self.relaxed = relaxed
         self.pulp_problem: Any = None
         self.load_hist = get_load_hist_from_load(self.workloads)
@@ -99,13 +122,18 @@ class MallooviaLp:
 
         # CookedData  stores some info required when building the problem, so that
         # this data is gathered only once, during __init__, and used when required
-        CookedData = namedtuple(   # pylint: disable=invalid-name
+        CookedData = namedtuple(  # pylint: disable=invalid-name
             "CookedData",
-            ["map_dem", "map_res",
-             "instances_res", "instances_dem",
-             "limiting_sets", "instance_prices", "instance_perfs"]
+            [
+                "map_dem",
+                "map_res",
+                "instances_res",
+                "instances_dem",
+                "limiting_sets",
+                "instance_prices",
+                "instance_perfs",
+            ],
         )
-
 
         # Separate the instances in two types: reserved and on-demand
         # Also create dictionaries for fast lookup of price and performance, converted
@@ -116,12 +144,13 @@ class MallooviaLp:
         instance_perfs = {}
         timeslot_length = self.workloads[0].time_unit
         for iclass in system.instance_classes:
-            instance_prices[iclass] = iclass.price/TimeUnit(iclass.time_unit).to(timeslot_length)
+            instance_prices[iclass] = iclass.price / TimeUnit(iclass.time_unit).to(
+                timeslot_length
+            )
             for app in self.system.apps:
-                instance_perfs[iclass, app] = (
-                    self.system.performances.values[iclass, app]
-                    /TimeUnit(self.system.performances.time_unit).to(timeslot_length)
-                )
+                instance_perfs[iclass, app] = self.system.performances.values[
+                    iclass, app
+                ] / TimeUnit(self.system.performances.time_unit).to(timeslot_length)
             if iclass.is_reserved:
                 instances_res.append(iclass)
             else:
@@ -135,13 +164,13 @@ class MallooviaLp:
 
         # Store cooked data
         self.cooked = CookedData(
-            map_dem=None,       # To be updated later by create_variables
+            map_dem=None,  # To be updated later by create_variables
             map_res=None,
             instances_res=instances_res,
             instances_dem=instances_dem,
             instance_prices=instance_prices,
             instance_perfs=instance_perfs,
-            limiting_sets=limiting_sets
+            limiting_sets=limiting_sets,
         )
 
     def _create_variables(self) -> None:
@@ -156,14 +185,12 @@ class MallooviaLp:
 
         # List all combinations of apps and instances and workloads
         comb_res = cartesian_product(self.system.apps, self.cooked.instances_res)
-        comb_dem = cartesian_product(self.system.apps, self.cooked.instances_dem,
-                                     self.load_hist.keys())
-        map_res = LpVariable.dicts('Y', comb_res, 0, None, kind)
-        map_dem = LpVariable.dicts('X', comb_dem, 0, None, kind)
-        self.cooked = self.cooked._replace(
-            map_res=map_res,
-            map_dem=map_dem
+        comb_dem = cartesian_product(
+            self.system.apps, self.cooked.instances_dem, self.load_hist.keys()
         )
+        map_res = LpVariable.dicts("Y", comb_res, 0, None, kind)
+        map_dem = LpVariable.dicts("X", comb_dem, 0, None, kind)
+        self.cooked = self.cooked._replace(map_res=map_res, map_dem=map_dem)
 
     def _cost_function(self) -> None:
         """Adds to the LP problem the function to optimize.
@@ -176,17 +203,28 @@ class MallooviaLp:
 
         period_length = sum(self.load_hist.values())
 
-        self.pulp_problem += lpSum(
-            [self.cooked.map_res[_a, _ic] * self.cooked.instance_prices[_ic] * period_length
-             for _a in self.system.apps
-             for _ic in self.cooked.instances_res] +
-            [self.cooked.map_dem[_a, _ic, _l] * self.cooked.instance_prices[_ic] * self.load_hist[_l]
-             for _a in self.system.apps
-             for _ic in self.cooked.instances_dem
-             for _l in self.load_hist.keys()
-            ]), "Objective: minimize cost"
+        self.pulp_problem += (
+            lpSum(
+                [
+                    self.cooked.map_res[_a, _ic]
+                    * self.cooked.instance_prices[_ic]
+                    * period_length
+                    for _a in self.system.apps
+                    for _ic in self.cooked.instances_res
+                ]
+                + [
+                    self.cooked.map_dem[_a, _ic, _l]
+                    * self.cooked.instance_prices[_ic]
+                    * self.load_hist[_l]
+                    for _a in self.system.apps
+                    for _ic in self.cooked.instances_dem
+                    for _l in self.load_hist.keys()
+                ]
+            ),
+            "Objective: minimize cost",
+        )
 
-    def create_problem(self) -> 'MallooviaLp':
+    def create_problem(self) -> "MallooviaLp":
         """Creates the PuLP problem with all variables and restrictions.
 
         Returns:
@@ -228,39 +266,50 @@ class MallooviaLp:
             perf_reserved = []
             for ins in self.cooked.instances_res:
                 perf_reserved.append(
-                    self.cooked.map_res[app, ins]
-                    * self.cooked.instance_perfs[ins, app])
+                    self.cooked.map_res[app, ins] * self.cooked.instance_perfs[ins, app]
+                )
             for load in self.load_hist.keys():
                 perf_ondemand = []
                 for ins in self.cooked.instances_dem:
                     perf_ondemand.append(
                         self.cooked.map_dem[app, ins, load]
-                        * self.cooked.instance_perfs[ins, app])
-                self.pulp_problem += lpSum(perf_reserved +  perf_ondemand) >= load[i], \
-                             "Minimum performance for application {} "\
-                             "when workload is {}".format(app, load)
+                        * self.cooked.instance_perfs[ins, app]
+                    )
+                self.pulp_problem += (
+                    lpSum(perf_reserved + perf_ondemand) >= load[i],
+                    "Minimum performance for application {} "
+                    "when workload is {}".format(app, load),
+                )
         return
 
-    def limit_instances_per_class_restriction(self) -> None:         # pylint: disable=invalid-name
+    def limit_instances_per_class_restriction(
+        self
+    ) -> None:  # pylint: disable=invalid-name
         """Adds ``max_vms`` per instance class restriction.
 
         If the ``ic`` instance has a ``max_vms`` attribute, this is a limit for all
         ``Y_*_ic`` and ``X_*_ic_*`` variables."""
         for ins in self.system.instance_classes:
             if ins.max_vms == 0:
-                continue     # No limit for this instance class
+                continue  # No limit for this instance class
 
             if ins.is_reserved:
-                self.pulp_problem += lpSum(self.cooked.map_res[app, ins]
-                                           for app in self.system.apps) <= ins.max_vms, \
-                             "Max instances reserved "\
-                             "instance class {}".format(ins)
+                self.pulp_problem += (
+                    lpSum(self.cooked.map_res[app, ins] for app in self.system.apps)
+                    <= ins.max_vms,
+                    "Max instances reserved " "instance class {}".format(ins),
+                )
             else:
                 for load in self.load_hist.keys():
-                    self.pulp_problem += lpSum(self.cooked.map_dem[app, ins, load]
-                                               for app in self.system.apps) <= ins.max_vms, \
-                                 "Max instances for on-demand instance "\
-                                 "class {} when workload is {}".format(ins, load)
+                    self.pulp_problem += (
+                        lpSum(
+                            self.cooked.map_dem[app, ins, load]
+                            for app in self.system.apps
+                        )
+                        <= ins.max_vms,
+                        "Max instances for on-demand instance "
+                        "class {} when workload is {}".format(ins, load),
+                    )
 
     def set_fixed_instances_restriction(self) -> None:
         """Adds restrictions for variables with pre-fixed values.
@@ -274,22 +323,30 @@ class MallooviaLp:
         instances running from previous timeslots, when using "guided"
         strategies"."""
 
-        if self.fixed_vms is None:      # No fixed instances, we are in PhaseI
+        if self.fixed_vms is None:  # No fixed instances, we are in PhaseI
             return
         for ins, value in self.fixed_vms.items():
             if ins.is_reserved:
-                self.pulp_problem += lpSum(self.cooked.map_res[app, ins]
-                                           for app in self.system.apps) == value, \
-                             "Reserved instance class {} "\
-                             "is fixed to {}".format(ins, value)
+                self.pulp_problem += (
+                    lpSum(self.cooked.map_res[app, ins] for app in self.system.apps)
+                    == value,
+                    "Reserved instance class {} " "is fixed to {}".format(ins, value),
+                )
             else:
                 for load in self.load_hist.keys():
-                    self.pulp_problem += lpSum(self.cooked.map_dem[app, ins, load]
-                                               for app in self.system.apps) >= value, \
-                                 "On-demand instance class {} is at least {} "\
-                                 "when workload is {}".format(ins, value, load)
+                    self.pulp_problem += (
+                        lpSum(
+                            self.cooked.map_dem[app, ins, load]
+                            for app in self.system.apps
+                        )
+                        >= value,
+                        "On-demand instance class {} is at least {} "
+                        "when workload is {}".format(ins, value, load),
+                    )
 
-    def limit_instances_per_limiting_set_restriction(self) -> None:  # pylint: disable=invalid-name
+    def limit_instances_per_limiting_set_restriction(
+        self
+    ) -> None:  # pylint: disable=invalid-name
         """Adds ``max_vms`` per limiting set restriction.
 
         If the limiting set provides a max_vms > 0, then the sum of all
@@ -297,22 +354,32 @@ class MallooviaLp:
         to that maximum."""
         for cloud in self.cooked.limiting_sets:
             if cloud.max_vms == 0:
-                continue    # No restriction for this limiting set
+                continue  # No restriction for this limiting set
 
             for load in self.load_hist.keys():
-                self.pulp_problem += lpSum(
-                    [self.cooked.map_res[app, ic]
-                     for app in self.system.apps
-                     for ic in self.cooked.instances_res
-                     if cloud in ic.limiting_sets] +
-                    [self.cooked.map_dem[app, ic, load]
-                     for app in self.system.apps
-                     for ic in self.cooked.instances_dem
-                     if cloud in ic.limiting_sets]) <= cloud.max_vms,\
-                    "Max instances for limiting set {} "\
-                    "when workload is {}".format(cloud, load)
+                self.pulp_problem += (
+                    lpSum(
+                        [
+                            self.cooked.map_res[app, ic]
+                            for app in self.system.apps
+                            for ic in self.cooked.instances_res
+                            if cloud in ic.limiting_sets
+                        ]
+                        + [
+                            self.cooked.map_dem[app, ic, load]
+                            for app in self.system.apps
+                            for ic in self.cooked.instances_dem
+                            if cloud in ic.limiting_sets
+                        ]
+                    )
+                    <= cloud.max_vms,
+                    "Max instances for limiting set {} "
+                    "when workload is {}".format(cloud, load),
+                )
 
-    def limit_cores_per_limiting_set_restriction(self) -> None:      # pylint: disable=invalid-name
+    def limit_cores_per_limiting_set_restriction(
+        self
+    ) -> None:  # pylint: disable=invalid-name
         """Adds ``max_cores`` per limiting set restriction.
 
         If the limiting set provides a max_cores > 0, then the sum of all
@@ -320,20 +387,28 @@ class MallooviaLp:
         limiting set should be limited to that maximum."""
         for cloud in self.cooked.limiting_sets:
             if cloud.max_cores == 0:
-                continue    # No restriction for this limiting set
+                continue  # No restriction for this limiting set
 
             for load in self.load_hist.keys():
-                self.pulp_problem += lpSum(
-                    [self.cooked.map_res[app, ic] * ic.cores
-                     for app in self.system.apps
-                     for ic in self.cooked.instances_res
-                     if cloud in ic.limiting_sets] +
-                    [self.cooked.map_dem[app, ic, load] * ic.cores
-                     for app in self.system.apps
-                     for ic in self.cooked.instances_dem
-                     if cloud in ic.limiting_sets]) <= cloud.max_cores,\
-                    "Max cores for limiting set {} "\
-                    "when workload is {}".format(cloud, load)
+                self.pulp_problem += (
+                    lpSum(
+                        [
+                            self.cooked.map_res[app, ic] * ic.cores
+                            for app in self.system.apps
+                            for ic in self.cooked.instances_res
+                            if cloud in ic.limiting_sets
+                        ]
+                        + [
+                            self.cooked.map_dem[app, ic, load] * ic.cores
+                            for app in self.system.apps
+                            for ic in self.cooked.instances_dem
+                            if cloud in ic.limiting_sets
+                        ]
+                    )
+                    <= cloud.max_cores,
+                    "Max cores for limiting set {} "
+                    "when workload is {}".format(cloud, load),
+                )
 
     def solve(self, *args, **kwargs):
         """Calls PuLP solver.
@@ -352,7 +427,7 @@ class MallooviaLp:
         """Returns the status of the problem"""
         if not self.solver_called:
             return Status.unsolved
-        return  pulp_to_malloovia_status(self.pulp_problem.status)
+        return pulp_to_malloovia_status(self.pulp_problem.status)
 
     def get_cost(self) -> float:
         """Gets the cost of the problem, obtained after solving it.
@@ -390,19 +465,24 @@ class MallooviaLp:
             workload_allocation = []
             for app in self.system.apps:
                 row = list(
-                    self.cooked.map_res[app, i].varValue for i in self.cooked.instances_res)
+                    self.cooked.map_res[app, i].varValue
+                    for i in self.cooked.instances_res
+                )
                 row.extend(
-                    self.cooked.map_dem[app, i, load].varValue for i in self.cooked.instances_dem)
+                    self.cooked.map_dem[app, i, load].varValue
+                    for i in self.cooked.instances_dem
+                )
                 workload_allocation.append(row)
             allocation.append(workload_allocation)
         return AllocationInfo(
             apps=tuple(self.system.apps),
             instance_classes=tuple(
-                self.cooked.instances_res + self.cooked.instances_dem),
+                self.cooked.instances_res + self.cooked.instances_dem
+            ),
             workload_tuples=workload_tuples,
             repeats=repeats,
             values=allocation,
-            units="vms"
+            units="vms",
         )
 
     def get_reserved_allocation(self) -> ReservedAllocation:
@@ -441,7 +521,8 @@ class MallooviaLp:
             for iclass in self.cooked.instances_res:
                 i_allocation = sum(
                     self.cooked.map_res[app, iclass].varValue
-                    for app in self.system.apps)
+                    for app in self.system.apps
+                )
                 workload_allocation.append(i_allocation)
 
             # The obtained allocation MUST be the same for any workload
@@ -450,7 +531,7 @@ class MallooviaLp:
 
         return ReservedAllocation(
             instance_classes=tuple(self.cooked.instances_res),
-            vms_number=tuple(allocation)
+            vms_number=tuple(allocation),
         )
 
 
@@ -472,16 +553,19 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
     hist.apps = tuple(w.app for w in workloads)
     timeslots = len(workloads[0].values)
     # Ensure that all workloads have the same length and units
-    assert all(len(w.values) == timeslots for w in workloads),\
-            "All workloads should have the same length"
+    assert all(
+        len(w.values) == timeslots for w in workloads
+    ), "All workloads should have the same length"
     # Iterate over tuples of loads, one tuple per timeslot
     workload_tuples = zip(*(w.values for w in workloads))
     for load in workload_tuples:
         hist[load] += 1
     return hist
 
-def reorder_workloads(workloads: Sequence[Workload],
-                      apps: Sequence[App]) -> Sequence[Workload]:
+
+def reorder_workloads(
+    workloads: Sequence[Workload], apps: Sequence[App]
+) -> Sequence[Workload]:
     """Returns the a new workload list ordered as the list of apps.
 
     Args:
@@ -509,6 +593,7 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
     the ones to get the cost and allocation of the solution, but overrides
     the function to be optimized and some of the constraints.
     """
+
     def _cost_function(self) -> None:
         """Adds to the LP problem the function to optimize (maximize in this case).
 
@@ -519,19 +604,28 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
         """
         workloads = {wl.app: wl.values[0] for wl in self.workloads}
 
-        self.pulp_problem += lpSum(
-            [self.cooked.map_res[_a, _ic]
-             * self.cooked.instance_perfs[_ic, _a]/workloads[_a]
-             for _a in self.system.apps
-             for _ic in self.cooked.instances_res] +
-            [self.cooked.map_dem[_a, _ic, _l]
-             * self.cooked.instance_perfs[_ic, _a]/workloads[_a]
-             for _a in self.system.apps
-             for _ic in self.cooked.instances_dem
-             for _l in self.load_hist.keys()
-            ]), "Objective: maximize fulfilled workload fraction"
+        self.pulp_problem += (
+            lpSum(
+                [
+                    self.cooked.map_res[_a, _ic]
+                    * self.cooked.instance_perfs[_ic, _a]
+                    / workloads[_a]
+                    for _a in self.system.apps
+                    for _ic in self.cooked.instances_res
+                ]
+                + [
+                    self.cooked.map_dem[_a, _ic, _l]
+                    * self.cooked.instance_perfs[_ic, _a]
+                    / workloads[_a]
+                    for _a in self.system.apps
+                    for _ic in self.cooked.instances_dem
+                    for _l in self.load_hist.keys()
+                ]
+            ),
+            "Objective: maximize fulfilled workload fraction",
+        )
 
-    def create_problem(self) -> 'MallooviaLpMaximizeTimeslotPerformance':
+    def create_problem(self) -> "MallooviaLpMaximizeTimeslotPerformance":
         """This method creates the PuLP problem, and calls other
         methods to add variables and restrictions to it.
         It initializes the attribute 'self.prob' with the
@@ -564,17 +658,20 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
             perf_reserved = []
             for ins in self.cooked.instances_res:
                 perf_reserved.append(
-                    self.cooked.map_res[app, ins]
-                    * self.cooked.instance_perfs[ins, app])
+                    self.cooked.map_res[app, ins] * self.cooked.instance_perfs[ins, app]
+                )
             for load in self.load_hist.keys():
                 perf_ondemand = []
                 for ins in self.cooked.instances_dem:
                     perf_ondemand.append(
                         self.cooked.map_dem[app, ins, load]
-                        * self.cooked.instance_perfs[ins, app])
-                self.pulp_problem += lpSum(perf_reserved +  perf_ondemand) <= load[i], \
-                             "Maximum performance for application {} "\
-                             "when workload is {}".format(app, load)
+                        * self.cooked.instance_perfs[ins, app]
+                    )
+                self.pulp_problem += (
+                    lpSum(perf_reserved + perf_ondemand) <= load[i],
+                    "Maximum performance for application {} "
+                    "when workload is {}".format(app, load),
+                )
 
     def get_cost(self) -> float:
         """Gets the cost of the problem, obtained after solving it.
@@ -591,12 +688,15 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
             self.cooked.instance_prices[ic] * self.cooked.map_res[app, ic].varValue
             for ic in self.cooked.instances_res
             for app in self.system.apps
-            ) + sum(
-                self.cooked.instance_prices[ic] * self.cooked.map_dem[app, ic, wl].varValue * self.load_hist[wl]
-                for ic in self.cooked.instances_dem
-                for app in self.system.apps
-                for wl in self.load_hist.keys()
-            )
+        ) + sum(
+            self.cooked.instance_prices[ic]
+            * self.cooked.map_dem[app, ic, wl].varValue
+            * self.load_hist[wl]
+            for ic in self.cooked.instances_dem
+            for app in self.system.apps
+            for wl in self.load_hist.keys()
+        )
+
 
 # The following function is used to monkey patch part of PuLP code.
 # This modification is aimed to get the value of the optimal best bound
@@ -616,7 +716,7 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
 
 
 # pylint: disable=invalid-name,too-many-locals,missing-docstring,bare-except,too-many-branches,too-many-statements
-def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
+def _solve_CBC_patched(self, lp, use_mps=True):  # pragma: no cover
     """Solve a MIP problem using CBC, patched from original PuLP function
     to save a log with cbc's output and take from it the best bound."""
 
@@ -634,26 +734,28 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
     variablesNames = constraintsNames = objectiveName = None
 
     if not self.executable(self.path):
-        raise PulpSolverError("Pulp: cannot execute %s cwd: %s" %
-                              (self.path, os.getcwd()))
+        raise PulpSolverError(
+            "Pulp: cannot execute %s cwd: %s" % (self.path, os.getcwd())
+        )
     if not self.keepFiles:
         pid = os.getpid()
         tmpLp = os.path.join(self.tmpDir, "%d-pulp.lp" % pid)
         tmpMps = os.path.join(self.tmpDir, "%d-pulp.mps" % pid)
         tmpSol = os.path.join(self.tmpDir, "%d-pulp.sol" % pid)
     else:
-        tmpLp = lp.name+"-pulp.lp"
-        tmpMps = lp.name+"-pulp.mps"
-        tmpSol = lp.name+"-pulp.sol"
+        tmpLp = lp.name + "-pulp.lp"
+        tmpMps = lp.name + "-pulp.mps"
+        tmpSol = lp.name + "-pulp.sol"
     if use_mps:
         _, variablesNames, constraintsNames, objectiveName = lp.writeMPS(
-            tmpMps, rename=1)
-        cmds = ' '+tmpMps+" "
+            tmpMps, rename=1
+        )
+        cmds = " " + tmpMps + " "
         if lp.sense == LpMaximize:
-            cmds += 'max '
+            cmds += "max "
     else:
         lp.writeLP(tmpLp)
-        cmds = ' '+tmpLp+" "
+        cmds = " " + tmpLp + " "
     if self.threads:
         cmds += "threads %s " % self.threads
     if self.fracGap is not None:
@@ -670,34 +772,32 @@ def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
         cmds += "knapsack on "
         cmds += "probing on "
     for option in self.options:
-        cmds += option+" "
+        cmds += option + " "
     if self.mip:
         cmds += "branch "
     else:
         cmds += "initialSolve "
     cmds += "printingOptions all "
-    cmds += "solution "+tmpSol+" "
+    cmds += "solution " + tmpSol + " "
     # if self.msg:
     #     pipe = None
     # else:
     #     pipe = open(os.devnull, 'w')
     log.debug(self.path + cmds)
-    with open(tmpLp + ".log", 'w') as pipe:
-        cbc = subprocess.Popen((self.path + cmds).split(), stdout=pipe,
-                               stderr=pipe)
+    with open(tmpLp + ".log", "w") as pipe:
+        cbc = subprocess.Popen((self.path + cmds).split(), stdout=pipe, stderr=pipe)
         if cbc.wait() != 0:
-            raise PulpSolverError("Pulp: Error while trying to execute " +
-                                  self.path)
+            raise PulpSolverError("Pulp: Error while trying to execute " + self.path)
     if not os.path.exists(tmpSol):
-        raise PulpSolverError("Pulp: Error while executing "+self.path)
+        raise PulpSolverError("Pulp: Error while executing " + self.path)
     if use_mps:
-        lp.status, values, reducedCosts, shadowPrices, slacks =\
-                self.readsol_MPS(tmpSol, lp, lp.variables(),
-                                 variablesNames, constraintsNames,
-                                 objectiveName)
+        lp.status, values, reducedCosts, shadowPrices, slacks = self.readsol_MPS(
+            tmpSol, lp, lp.variables(), variablesNames, constraintsNames, objectiveName
+        )
     else:
-        lp.status, values, reducedCosts, shadowPrices, slacks =\
-                self.readsol_LP(tmpSol, lp, lp.variables())
+        lp.status, values, reducedCosts, shadowPrices, slacks = self.readsol_LP(
+            tmpSol, lp, lp.variables()
+        )
     lp.assignVarsVals(values)
     lp.assignVarsDj(reducedCosts)
     lp.assignConsPi(shadowPrices)
@@ -725,7 +825,7 @@ COIN_CMD.solve_CBC = _solve_CBC_patched
 
 
 __all__ = [
-    'MallooviaLp', 'get_load_hist_from_load',
-    'MallooviaLpMaximizeTimeslotPerformance'
-    ]
- 
+    "MallooviaLp",
+    "get_load_hist_from_load",
+    "MallooviaLpMaximizeTimeslotPerformance",
+]

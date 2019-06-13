@@ -1,19 +1,23 @@
 """Module providing high level PhaseI and PhaseII classes which drive the solver"""
-from typing import (Dict, Tuple, Any, Sequence, Optional)
+from typing import Dict, Tuple, Any, Sequence, Optional
 import time
 from collections import OrderedDict
 import collections.abc
-from pulp import (PulpSolverError)  # type: ignore
+from pulp import PulpSolverError  # type: ignore
 
-from .lpsolver import (
-    MallooviaLp,
-    MallooviaLpMaximizeTimeslotPerformance
-)
+from .lpsolver import MallooviaLp, MallooviaLpMaximizeTimeslotPerformance
 from .solution_model import (
-    SolvingStats, GlobalSolvingStats, MallooviaStats,
-    SolutionI, SolutionII, AllocationInfo, ReservedAllocation,
-    Status, pulp_to_malloovia_status)
-from .model import (System, Problem, Workload, system_from_problem, check_valid_problem)
+    SolvingStats,
+    GlobalSolvingStats,
+    MallooviaStats,
+    SolutionI,
+    SolutionII,
+    AllocationInfo,
+    ReservedAllocation,
+    Status,
+    pulp_to_malloovia_status,
+)
+from .model import System, Problem, Workload, system_from_problem, check_valid_problem
 
 ###############################################################################
 # Phase I
@@ -26,6 +30,7 @@ class PhaseI:
         phase_i = PhaseI(problem)
         solution = phase_i.solve()
     """
+
     def __init__(self, problem: Problem) -> None:
         """Constructor.
 
@@ -36,12 +41,14 @@ class PhaseI:
             ValueError: if the problem stores inconsistent information.
         """
         self.problem = check_valid_problem(problem)
-        self.__solution:Optional[SolutionI] = None
+        self.__solution: Optional[SolutionI] = None
         self.__full_solution = None
         self._malloovia_lp: Optional[MallooviaLp] = None
         self.solving_stats = None
 
-    def solve(self, gcd: bool=True, solver: Any=None, relaxed: bool=False) -> SolutionI:
+    def solve(
+        self, gcd: bool = True, solver: Any = None, relaxed: bool = False
+    ) -> SolutionI:
         """Creates Malloovia's LP problem, solves it, and returns the solution.
 
         Args:
@@ -59,8 +66,11 @@ class PhaseI:
         creation_time, self._malloovia_lp = _create_problem(
             system=system_from_problem(self.problem),
             workloads=self.problem.workloads,
-            relaxed=relaxed)
-        solving_time, malloovia_stats = _solve_problem(self._malloovia_lp, gcd=gcd, solver=solver)
+            relaxed=relaxed,
+        )
+        solving_time, malloovia_stats = _solve_problem(
+            self._malloovia_lp, gcd=gcd, solver=solver
+        )
 
         # Retrieve the solution and store it in a private property
         allocation = None
@@ -75,7 +85,7 @@ class PhaseI:
             algorithm=malloovia_stats,
             creation_time=creation_time,
             solving_time=solving_time,
-            optimal_cost=optimal_cost
+            optimal_cost=optimal_cost,
         )
 
         self.__solution = SolutionI(
@@ -83,7 +93,8 @@ class PhaseI:
             problem=self.problem,
             solving_stats=solving_stats,
             reserved_allocation=reserved_allocation,
-            allocation=allocation)
+            allocation=allocation,
+        )
 
         return self.__solution
 
@@ -92,6 +103,7 @@ class PhaseI:
         """Stored solution of the problem (type :class:`SolutionI`). It is None
         if the problem has not been yet solved."""
         return self.__solution
+
 
 ###############################################################################
 # Phase II
@@ -103,7 +115,10 @@ class STWPredictor(collections.abc.Iterable):
     # Any attempt to instantiate this class will produce a run-time error
     pass
 
-class OmniscientSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,too-few-public-methods
+
+class OmniscientSTWPredictor(
+    STWPredictor
+):  # pylint: disable=invalid-name,too-few-public-methods
     """Concrete implementation of STWP_Predictor which knows in advance the STWP for
     all timeslots in the future.
 
@@ -111,6 +126,7 @@ class OmniscientSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,t
     tuple at a time, whose elements are :class:`Workload` whose
     ``values`` have a length of 1 (the workload for the next timeslot).
     """
+
     def __init__(self, stwp: Tuple[Workload, ...]) -> None:
         """Constructor.
 
@@ -127,12 +143,20 @@ class OmniscientSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,t
             raise ValueError("All workloads should have the same length")
 
     def __iter__(self):
-        return (      # Generator expression
-            tuple(Workload(id=None, description=None, values=(w.values[i],),
-                           time_unit=w.time_unit, app=w.app)
-                  for w in self.stwp)
+        return (  # Generator expression
+            tuple(
+                Workload(
+                    id=None,
+                    description=None,
+                    values=(w.values[i],),
+                    time_unit=w.time_unit,
+                    app=w.app,
+                )
+                for w in self.stwp
+            )
             for i in range(self.timeslots)
         )
+
 
 class PhaseII:
     """Solves phase II, either for a single timeslot or for the whole reservation period.
@@ -145,9 +169,14 @@ class PhaseII:
     timeslot, and :func:`self.solve_period()` to solve the whole reservation period
     by iteratively solving each timeslot.
     """
-    def __init__(self, problem: Problem,
-                 phase_i_solution: SolutionI,
-                 solver: Any=None, reuse_rsv: bool=True) -> None:
+
+    def __init__(
+        self,
+        problem: Problem,
+        phase_i_solution: SolutionI,
+        solver: Any = None,
+        reuse_rsv: bool = True,
+    ) -> None:
         """Constructor.
 
         Args:
@@ -169,15 +198,16 @@ class PhaseII:
 
         # Hash table with the already computed solutions for each workload level
         # initially empty
-        self._solutions: Dict[Tuple[System, Sequence[Workload]], SolutionI] = OrderedDict()
+        self._solutions: Dict[
+            Tuple[System, Sequence[Workload]], SolutionI
+        ] = OrderedDict()
 
         # Internal handle to the inner malloovia LP solver
         self._malloovia_lp = None
 
-    def solve_timeslot(self,
-                       workloads: Sequence[Workload],
-                       system: System=None,
-                       solver: Any=None) -> SolutionI:
+    def solve_timeslot(
+        self, workloads: Sequence[Workload], system: System = None, solver: Any = None
+    ) -> SolutionI:
         """Solve one timeslot of phase II for the workload received.
 
         The solution is stored in the field 'self._solutions' using the pairs (system, workloads)
@@ -205,7 +235,7 @@ class PhaseII:
         if not self.reuse_rsv:
             raise NotImplementedError("Solving without reuse is not implemented")
 
-        if solver is None:   # default to class solver
+        if solver is None:  # default to class solver
             solver = self.solver
 
         # Instantiate problem
@@ -213,9 +243,11 @@ class PhaseII:
             system=system,
             workloads=workloads,
             preallocation=self.phase_i_solution.reserved_allocation,
-            relaxed=False
+            relaxed=False,
         )
-        solving_time, malloovia_stats = _solve_problem(malloovia_lp, gcd=False, solver=solver)
+        solving_time, malloovia_stats = _solve_problem(
+            malloovia_lp, gcd=False, solver=solver
+        )
 
         # Retrieve the solution and store it in a private property
         allocation = None
@@ -228,14 +260,16 @@ class PhaseII:
                 system=system,
                 workloads=workloads,
                 preallocation=self.phase_i_solution.reserved_allocation,
-                solver=solver)
+                solver=solver,
+            )
             creation_time += sol.solving_stats.creation_time
             solving_time += sol.solving_stats.solving_time
             if sol.solving_stats.algorithm.status == Status.optimal:
                 malloovia_stats = malloovia_stats._replace(status=Status.overfull)
             else:
                 malloovia_stats = malloovia_stats._replace(
-                    status=sol.solving_stats.algorithm.status)
+                    status=sol.solving_stats.algorithm.status
+                )
             optimal_cost = sol.solving_stats.optimal_cost
             allocation = sol.allocation
 
@@ -243,23 +277,21 @@ class PhaseII:
             algorithm=malloovia_stats,
             creation_time=creation_time,
             solving_time=solving_time,
-            optimal_cost=optimal_cost
+            optimal_cost=optimal_cost,
         )
 
-        valid_id = "sol_for_{}".format(
-            "_".join(str(wl.values[0]) for wl in workloads)
-        )
+        valid_id = "sol_for_{}".format("_".join(str(wl.values[0]) for wl in workloads))
         self._solutions[system, workloads] = SolutionI(
             id=valid_id,
             problem=self.problem,
             solving_stats=solving_stats,
             reserved_allocation=self.phase_i_solution.reserved_allocation,
-            allocation=allocation
+            allocation=allocation,
         )
 
         return self._solutions[system, workloads]
 
-    def solve_period(self, predictor: STWPredictor=None) -> SolutionII:
+    def solve_period(self, predictor: STWPredictor = None) -> SolutionII:
         """Solves the complete reserved period by iteratively solving each timeslot.
 
         Args:
@@ -289,9 +321,13 @@ class PhaseII:
         """
         if all(s.solving_stats.algorithm.status == Status.optimal for s in solutions):
             global_status = Status.optimal
-        elif any(s.solving_stats.algorithm.status == Status.infeasible for s in solutions):
+        elif any(
+            s.solving_stats.algorithm.status == Status.infeasible for s in solutions
+        ):
             global_status = Status.infeasible
-        elif any(s.solving_stats.algorithm.status == Status.overfull for s in solutions):
+        elif any(
+            s.solving_stats.algorithm.status == Status.overfull for s in solutions
+        ):
             global_status = Status.overfull
         else:
             global_status = Status.unknown
@@ -300,16 +336,16 @@ class PhaseII:
             creation_time=sum(s.solving_stats.creation_time for s in solutions),
             solving_time=sum(s.solving_stats.solving_time for s in solutions),
             optimal_cost=sum(s.solving_stats.optimal_cost for s in solutions),
-            status=global_status
+            status=global_status,
         )
 
         allocation = AllocationInfo(
             apps=solutions[0].allocation.apps,
             instance_classes=solutions[0].allocation.instance_classes,
             workload_tuples=[s.allocation.workload_tuples[0] for s in solutions],
-            repeats=[1]*len(solutions),
+            repeats=[1] * len(solutions),
             values=[s.allocation.values[0] for s in solutions],
-            units="vms"
+            units="vms",
         )
 
         return SolutionII(
@@ -318,7 +354,7 @@ class PhaseII:
             solving_stats=[s.solving_stats for s in solutions],
             previous_phase=self.phase_i_solution,
             global_solving_stats=global_solving_stats,
-            allocation=allocation
+            allocation=allocation,
         )
 
 
@@ -330,13 +366,17 @@ class PhaseIIGuided(PhaseII):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._solutions: Dict[Tuple[System, ReservedAllocation, Sequence[Workload]], SolutionI] = OrderedDict()
+        self._solutions: Dict[
+            Tuple[System, ReservedAllocation, Sequence[Workload]], SolutionI
+        ] = OrderedDict()
 
-    def solve_timeslot(self,
-                       workloads: Sequence[Workload],
-                       system: System=None,
-                       solver: Any=None,
-                       preallocation: ReservedAllocation=None):
+    def solve_timeslot(
+        self,
+        workloads: Sequence[Workload],
+        system: System = None,
+        solver: Any = None,
+        preallocation: ReservedAllocation = None,
+    ):
         """Solve one timeslot of phase II for the workload received.
 
         The solution is stored in the field 'self._solutions' using the tuples
@@ -369,8 +409,9 @@ class PhaseIIGuided(PhaseII):
             res_ics = res_alloc.instance_classes
             res_vms_number = res_alloc.vms_number
             preallocation = ReservedAllocation(
-                instance_classes= res_ics + preallocation.instance_classes,
-                vms_number = res_vms_number + preallocation.vms_number)
+                instance_classes=res_ics + preallocation.instance_classes,
+                vms_number=res_vms_number + preallocation.vms_number,
+            )
 
         if (system, preallocation, workloads) in self._solutions:
             # This workload was already solved. Nothing to be done
@@ -379,7 +420,7 @@ class PhaseIIGuided(PhaseII):
         if not self.reuse_rsv:
             raise NotImplementedError("Solving without reuse is not implemented")
 
-        if solver is None:   # default to class solver
+        if solver is None:  # default to class solver
             solver = self.solver
 
         # Instantiate problem
@@ -387,9 +428,11 @@ class PhaseIIGuided(PhaseII):
             system=system,
             workloads=workloads,
             preallocation=preallocation,
-            relaxed=False
+            relaxed=False,
         )
-        solving_time, malloovia_stats = _solve_problem(malloovia_lp, gcd=False, solver=solver)
+        solving_time, malloovia_stats = _solve_problem(
+            malloovia_lp, gcd=False, solver=solver
+        )
 
         # Retrieve the solution and store it in a private property
         allocation = None
@@ -402,14 +445,16 @@ class PhaseIIGuided(PhaseII):
                 system=system,
                 workloads=workloads,
                 preallocation=preallocation,
-                solver=solver)
+                solver=solver,
+            )
             creation_time += sol.solving_stats.creation_time
             solving_time += sol.solving_stats.solving_time
             if sol.solving_stats.algorithm.status == Status.optimal:
                 malloovia_stats = malloovia_stats._replace(status=Status.overfull)
             else:
                 malloovia_stats = malloovia_stats._replace(
-                    status=sol.solving_stats.algorithm.status)
+                    status=sol.solving_stats.algorithm.status
+                )
             optimal_cost = sol.solving_stats.optimal_cost
             allocation = sol.allocation
 
@@ -417,27 +462,27 @@ class PhaseIIGuided(PhaseII):
             algorithm=malloovia_stats,
             creation_time=creation_time,
             solving_time=solving_time,
-            optimal_cost=optimal_cost
+            optimal_cost=optimal_cost,
         )
 
-        valid_id = "sol_for_{}".format(
-            "_".join(str(wl.values[0]) for wl in workloads)
-        )
+        valid_id = "sol_for_{}".format("_".join(str(wl.values[0]) for wl in workloads))
         self._solutions[system, preallocation, workloads] = SolutionI(
             id=valid_id,
             problem=self.problem,
             solving_stats=solving_stats,
             reserved_allocation=preallocation,
-            allocation=allocation
+            allocation=allocation,
         )
 
         return self._solutions[system, preallocation, workloads]
 
 
-def _solve_dual_problem(system: System,
-                        workloads: Sequence[Workload],
-                        preallocation: Optional[ReservedAllocation],
-                        solver: Any=None) -> SolutionI:
+def _solve_dual_problem(
+    system: System,
+    workloads: Sequence[Workload],
+    preallocation: Optional[ReservedAllocation],
+    solver: Any = None,
+) -> SolutionI:
     """Uses MallooviaLpMaximizeTimeslotPerformance to solve the dual problem
 
     Args:
@@ -454,16 +499,14 @@ def _solve_dual_problem(system: System,
         system=system,
         workloads=workloads,
         preallocation=preallocation,
-        relaxed=False,        # TODO: Allow for relaxed in PhaseII?
+        relaxed=False,  # TODO: Allow for relaxed in PhaseII?
     )
     start = time.perf_counter()
     malloovia_lp.create_problem()
     creation_time = time.perf_counter() - start
 
     solving_time, malloovia_stats = _solve_problem(
-        malloovia_lp=malloovia_lp,
-        gcd=False,
-        solver=solver
+        malloovia_lp=malloovia_lp, gcd=False, solver=solver
     )
 
     allocation = malloovia_lp.get_allocation()
@@ -473,7 +516,7 @@ def _solve_dual_problem(system: System,
         algorithm=malloovia_stats,
         creation_time=creation_time,
         solving_time=solving_time,
-        optimal_cost=optimal_cost
+        optimal_cost=optimal_cost,
     )
 
     return SolutionI(
@@ -481,14 +524,17 @@ def _solve_dual_problem(system: System,
         problem=None,
         solving_stats=solving_stats,
         reserved_allocation=None,
-        allocation=allocation
+        allocation=allocation,
     )
 
 
 # Functions which interface with lpSolver.MallooviaLp to create and solve the problem
-def _create_problem(system: System, workloads: Sequence[Workload],
-                    preallocation: ReservedAllocation=None,
-                    relaxed: bool=False) -> Tuple[float, MallooviaLp]:
+def _create_problem(
+    system: System,
+    workloads: Sequence[Workload],
+    preallocation: ReservedAllocation = None,
+    relaxed: bool = False,
+) -> Tuple[float, MallooviaLp]:
     """Instantiates MallooviaLp class with the problem definition, and calls
     :func:`MallooviaLp.create_problem()`.
 
@@ -504,10 +550,8 @@ def _create_problem(system: System, workloads: Sequence[Workload],
     """
     # Instantiate LP problem
     _malloovia_lp = MallooviaLp(
-        system=system,
-        workloads=workloads,
-        preallocation=preallocation,
-        relaxed=relaxed)
+        system=system, workloads=workloads, preallocation=preallocation, relaxed=relaxed
+    )
 
     # Write the LP problem and measure the time required to create it
     start = time.perf_counter()
@@ -515,7 +559,10 @@ def _create_problem(system: System, workloads: Sequence[Workload],
     creation_time = time.perf_counter() - start
     return creation_time, _malloovia_lp
 
-def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[float, MallooviaStats]:
+
+def _solve_problem(
+    malloovia_lp: MallooviaLp, gcd: bool, solver: Any
+) -> Tuple[float, MallooviaStats]:
     """Calls :func:`MallooviaLp.solve()` and retrieves statistics from the solver.
 
     Args:
@@ -546,8 +593,12 @@ def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[f
         end = time.perf_counter()
         solving_time = end - start
         status = Status.cbc_error
-        print("Exception PulpSolverError. Time to failure: {} seconds\n"
-              .format(solving_time), exception)
+        print(
+            "Exception PulpSolverError. Time to failure: {} seconds\n".format(
+                solving_time
+            ),
+            exception,
+        )
     else:
         # No exceptions
         end = time.perf_counter()
@@ -562,8 +613,15 @@ def _solve_problem(malloovia_lp: MallooviaLp, gcd: bool, solver: Any) -> Tuple[f
         frac_gap=frac_gap,
         max_seconds=max_seconds,
         status=status,
-        lower_bound=lower_bound)
+        lower_bound=lower_bound,
+    )
     return solving_time, malloovia_stats
 
 
-__all__ = ['PhaseI', 'PhaseII', 'PhaseIIGuided' , 'STWPredictor', 'OmniscientSTWPredictor']
+__all__ = [
+    "PhaseI",
+    "PhaseII",
+    "PhaseIIGuided",
+    "STWPredictor",
+    "OmniscientSTWPredictor",
+]

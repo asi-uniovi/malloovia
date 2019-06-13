@@ -2,15 +2,19 @@
 
 """Classes for storing and reporting solutions of malloovia problems."""
 
-from typing import (Union, NamedTuple, Optional, List, Sequence, Tuple)
+from typing import Union, NamedTuple, Optional, List, Sequence, Tuple
 from enum import IntEnum
 from functools import singledispatch
-import pulp # type: ignore
+import pulp  # type: ignore
 
 from .model import (
-    remove_namedtuple_defaultdoc, PerformanceValues, 
-    InstanceClass, App, Problem,
+    remove_namedtuple_defaultdoc,
+    PerformanceValues,
+    InstanceClass,
+    App,
+    Problem,
 )
+
 
 class Status(IntEnum):
     "Possible status of malloovia's solution"
@@ -62,6 +66,7 @@ class MallooviaHistogram(dict):
 @remove_namedtuple_defaultdoc
 class MallooviaStats(NamedTuple):
     """Stores data related to the Malloovia solver."""
+
     gcd: bool
     "bool: whether GCD technique was used or not."
 
@@ -125,6 +130,7 @@ class GlobalSolvingStats(NamedTuple):
 
     default_algorithm: Optional[str] = None
     """Currently unused"""
+
 
 @remove_namedtuple_defaultdoc
 class ReservedAllocation(NamedTuple):
@@ -213,6 +219,7 @@ class SolutionI(NamedTuple):
     reserved_allocation: ReservedAllocation
     """:class:`.ReservedAllocation`: allocation for reserved instances only."""
 
+
 @remove_namedtuple_defaultdoc
 class SolutionII(NamedTuple):
     """Stores a solution for phase II."""
@@ -263,15 +270,17 @@ def compute_allocation_cost(alloc: AllocationInfo) -> AllocationInfo:
 
     return alloc._replace(values=costs, units="cost")
 
+
 @compute_allocation_cost.register(SolutionI)
 @compute_allocation_cost.register(SolutionII)
 def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo:
     return compute_allocation_cost(solution.allocation)
 
+
 @singledispatch
 def compute_allocation_performance(
-        alloc: AllocationInfo,
-        performances: PerformanceValues) -> AllocationInfo:
+    alloc: AllocationInfo, performances: PerformanceValues
+) -> AllocationInfo:
     """Computes the performance of each element of the allocation.
 
     Args:
@@ -293,21 +302,31 @@ def compute_allocation_performance(
             perfs_app = []
             for i, _ in enumerate(app_alloc):
                 iclass = alloc.instance_classes[i]
-                perfs_app.append(
-                    app_alloc[i] * performances[iclass, app])
+                perfs_app.append(app_alloc[i] * performances[iclass, app])
             perfs_row.append(perfs_app)
         perfs.append(perfs_row)
     return alloc._replace(values=perfs, units="rph")
 
+
 @compute_allocation_performance.register(SolutionI)
 @compute_allocation_performance.register(SolutionII)
-def __(solution: Union[SolutionI, SolutionII]) -> AllocationInfo: # pylint:disable=function-redefined
+def __(
+    solution: Union[SolutionI, SolutionII]
+) -> AllocationInfo:  # pylint:disable=function-redefined
     return compute_allocation_performance(
-        solution.allocation,
-        solution.problem.performances.values)
+        solution.allocation, solution.problem.performances.values
+    )
+
 
 __all__ = [
-    'Status', 'MallooviaStats', 'SolvingStats', 'GlobalSolvingStats',
-    'AllocationInfo', 'ReservedAllocation', 'SolutionI', 'SolutionII',
-    'compute_allocation_cost', 'compute_allocation_performance'
+    "Status",
+    "MallooviaStats",
+    "SolvingStats",
+    "GlobalSolvingStats",
+    "AllocationInfo",
+    "ReservedAllocation",
+    "SolutionI",
+    "SolutionII",
+    "compute_allocation_cost",
+    "compute_allocation_performance",
 ]

@@ -1,21 +1,32 @@
 """Utility functions to save and load Malloovia problem definitions"""
 
-from typing import (Mapping, Dict, Sequence, Tuple, Union, Any, List, Set, Iterable)
+from typing import Mapping, Dict, Sequence, Tuple, Union, Any, List, Set, Iterable
 import os.path
 import gzip
 import urllib.request
+
 # To use ruamel.yaml instead of pyyaml:
 from ruamel.yaml import YAML  # type: ignore
-yaml = YAML(typ='safe')
+
+yaml = YAML(typ="safe")
 yaml.safe_load = yaml.load
 
 from .model import (
-    App, LimitingSet, InstanceClass,
-    Workload, PerformanceSet, PerformanceValues, Problem
+    App,
+    LimitingSet,
+    InstanceClass,
+    Workload,
+    PerformanceSet,
+    PerformanceValues,
+    Problem,
 )
 from .solution_model import (
-    SolutionI, SolutionII, SolvingStats, GlobalSolvingStats,
-    AllocationInfo, ReservedAllocation
+    SolutionI,
+    SolutionII,
+    SolvingStats,
+    GlobalSolvingStats,
+    AllocationInfo,
+    ReservedAllocation,
 )
 
 
@@ -34,12 +45,14 @@ def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     """
     _open = _get_open_function_from_extension(filename)
 
-    with _open(filename, mode='rt', encoding="utf8") as stream:
+    with _open(filename, mode="rt", encoding="utf8") as stream:
         data = yaml.safe_load(stream)
     return problems_from_dict(data, filename)
 
-def read_problems_from_github(dataset: str, _id: str=None,
-                              base_url: str=None) -> Union[Problem, Mapping[str, Problem]]:
+
+def read_problems_from_github(
+    dataset: str, _id: str = None, base_url: str = None
+) -> Union[Problem, Mapping[str, Problem]]:
     """Reads a problem or set of problems from a GitHub repository.
 
     Args:
@@ -59,8 +72,10 @@ def read_problems_from_github(dataset: str, _id: str=None,
     """
 
     if base_url is None:
-        base_url = ("https://raw.githubusercontent.com/asi-uniovi/malloovia"
-                    "/units/tests/test_data/problems/")
+        base_url = (
+            "https://raw.githubusercontent.com/asi-uniovi/malloovia"
+            "/units/tests/test_data/problems/"
+        )
 
     url = "{}/{}.yaml".format(base_url, dataset)
     with urllib.request.urlopen(url) as stream:
@@ -73,7 +88,10 @@ def read_problems_from_github(dataset: str, _id: str=None,
 
     return problems[_id]
 
-def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[str, Problem]:
+
+def problems_from_dict(
+    data: Mapping[str, Any], yaml_filename: str
+) -> Mapping[str, Problem]:
     """Takes data from a dictionary with a particular structure, and stores it in
     several Problem instances.
 
@@ -87,8 +105,10 @@ def problems_from_dict(data: Mapping[str, Any], yaml_filename: str) -> Mapping[s
     problems, _ = _problems_and_ids_from_dict(data, yaml_filename)
     return problems
 
-def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
-                               ) -> Tuple[Mapping[str, Problem], Dict[Any, Any]]:
+
+def _problems_and_ids_from_dict(
+    data: Mapping[str, Any], yaml_filename: str
+) -> Tuple[Mapping[str, Problem], Dict[Any, Any]]:
     """Takes data from a dictionary with a particular structure, and stores it in
     several Problem instances. It also returns another dictionary that can be used to
     translate between YAML ids and the corresponding objects.
@@ -138,8 +158,7 @@ def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
             limiting_sets = []
             for lset_data in ic_data["limiting_sets"]:
                 copy_id_to_name(lset_data)
-                limiting_sets.append(create_if_neccesary(LimitingSet,
-                                                         lset_data))
+                limiting_sets.append(create_if_neccesary(LimitingSet, lset_data))
             ic_data["limiting_sets"] = tuple(limiting_sets)
             create_if_neccesary(InstanceClass, ic_data)
 
@@ -149,8 +168,9 @@ def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
         for w_data in _list:
             w_data["app"] = create_if_neccesary(App, w_data["app"])
             if w_data.get("filename"):
-                values = read_from_relative_csv(filename=w_data["filename"],
-                                                relative_to=yaml_filename)
+                values = read_from_relative_csv(
+                    filename=w_data["filename"], relative_to=yaml_filename
+                )
             else:
                 values = tuple(w_data["values"])
             w_data.update(values=values)
@@ -179,8 +199,11 @@ def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
             if ic_object not in perf_dict:
                 perf_dict[ic_object] = {}
             perf_dict[ic_object][app_object] = float(value)
-        perf = PerformanceSet(id=_dict["id"], values=PerformanceValues(perf_dict),
-                              time_unit=_dict["time_unit"])
+        perf = PerformanceSet(
+            id=_dict["id"],
+            values=PerformanceValues(perf_dict),
+            time_unit=_dict["time_unit"],
+        )
         ids_to_objects[id(_dict)] = perf
         return perf
 
@@ -198,18 +221,21 @@ def _problems_and_ids_from_dict(data: Mapping[str, Any], yaml_filename: str
     for problem in data["Problems"]:
         performances = create_performances(problem["performances"])
         problem.update(
-            workloads=tuple(ids_to_objects[id(w)]
-                            for w in problem["workloads"]),
-            instance_classes=tuple(ids_to_objects[id(i)]
-                                   for i in problem["instance_classes"]),
-            performances=performances
+            workloads=tuple(ids_to_objects[id(w)] for w in problem["workloads"]),
+            instance_classes=tuple(
+                ids_to_objects[id(i)] for i in problem["instance_classes"]
+            ),
+            performances=performances,
         )
         new_problem = Problem(**problem)
         problems[new_problem.id] = new_problem
         ids_to_objects[id(problem)] = new_problem
     return problems, ids_to_objects
 
-def read_solutions_from_yaml(filename: str) -> Mapping[str, Union[SolutionI, SolutionII]]:
+
+def read_solutions_from_yaml(
+    filename: str
+) -> Mapping[str, Union[SolutionI, SolutionII]]:
     """Reads the solutions(s) contained in a YAML file.
 
     Args:
@@ -224,12 +250,14 @@ def read_solutions_from_yaml(filename: str) -> Mapping[str, Union[SolutionI, Sol
     """
     _open = _get_open_function_from_extension(filename)
 
-    with _open(filename, mode='rt', encoding="utf8") as stream:
+    with _open(filename, mode="rt", encoding="utf8") as stream:
         data = yaml.safe_load(stream)
     return solutions_from_dict(data, filename)
 
-def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
-                       ) -> Mapping[str, Union[SolutionI, SolutionII]]:
+
+def solutions_from_dict(
+    data: Mapping[str, Any], yaml_filename: str
+) -> Mapping[str, Union[SolutionI, SolutionII]]:
     """Takes data from a dictionary with a particular structure, and stores it in
     several Solution instances.
 
@@ -243,12 +271,12 @@ def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
 
     # Mapping to remember which dictionaries were already converted to objects
     # Keys are object ids of dictionaries, values are the corresponding malloovia objects
-    ids_to_objects: Dict[int, Any]= {}
+    ids_to_objects: Dict[int, Any] = {}
 
     def _is_phase_i_solution(solution_dict):
         """Receives a solution as a dict generated by yaml_load() and returns
         true if is a phase I solution and false otherwise"""
-        if not 'previous_phase' in solution_dict:
+        if not "previous_phase" in solution_dict:
             return True
 
         return False
@@ -257,7 +285,9 @@ def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
         return SolutionI(**solution_dict)
 
     def _create_phase_ii_solution(solution_dict):
-        solution_dict['previous_phase'] = ids_to_objects[id(solution_dict['previous_phase'])]
+        solution_dict["previous_phase"] = ids_to_objects[
+            id(solution_dict["previous_phase"])
+        ]
         return SolutionII(**solution_dict)
 
     def _dict_list_to_id_list(dict_list):
@@ -267,19 +297,23 @@ def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
         return id_list
 
     def _convert_allocation(solution_dict):
-        alloc = solution_dict['allocation']
-        solution_dict['allocation']['apps'] = _dict_list_to_id_list(alloc['apps'])
-        solution_dict['allocation']['instance_classes'] = _dict_list_to_id_list(alloc['instance_classes'])
+        alloc = solution_dict["allocation"]
+        solution_dict["allocation"]["apps"] = _dict_list_to_id_list(alloc["apps"])
+        solution_dict["allocation"]["instance_classes"] = _dict_list_to_id_list(
+            alloc["instance_classes"]
+        )
 
     def _create_solution(solution_dict):
-        solution_dict['problem'] = ids_to_objects[id(solution_dict['problem'])]
+        solution_dict["problem"] = ids_to_objects[id(solution_dict["problem"])]
 
-        if 'allocation' in solution_dict:
+        if "allocation" in solution_dict:
             _convert_allocation(solution_dict)
 
         if _is_phase_i_solution(solution_dict):
-            res_alloc = solution_dict['reserved_allocation']
-            res_alloc['instance_classes'] = _dict_list_to_id_list(res_alloc['instance_classes'])
+            res_alloc = solution_dict["reserved_allocation"]
+            res_alloc["instance_classes"] = _dict_list_to_id_list(
+                res_alloc["instance_classes"]
+            )
             result = _create_phase_i_solution(solution_dict)
         else:
             result = _create_phase_ii_solution(solution_dict)
@@ -293,20 +327,23 @@ def solutions_from_dict(data: Mapping[str, Any], yaml_filename: str
 
     # Create solutions for phase I. They have to be created before solutions for
     # phase II because the latter reference the former
-    for solution_dict in data['Solutions']:
+    for solution_dict in data["Solutions"]:
         if _is_phase_i_solution(solution_dict):
             solution = _create_solution(solution_dict)
             solutions[solution.id] = solution
 
-     # Create solutions for phase II
-    for solution_dict in data['Solutions']:
+    # Create solutions for phase II
+    for solution_dict in data["Solutions"]:
         if not _is_phase_i_solution(solution_dict):
             solution = _create_solution(solution_dict)
             solutions[solution.id] = solution
 
     return solutions
 
-def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disable=too-many-locals
+
+def problems_to_yaml(
+    problems: Mapping[str, Problem]
+) -> str:  # pylint: disable=too-many-locals
     """Converts problems from the classes used by malloovia to a yaml string.
 
     Args:
@@ -325,7 +362,9 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
     the resulting dict contains internal references (instead of copies) to other dicts.
     """
 
-    def collect_instance_classes_and_limiting_sets(problem):  # pylint: disable=invalid-name
+    def collect_instance_classes_and_limiting_sets(
+        problem
+    ):  # pylint: disable=invalid-name
         """Populates and returns instance_classes and limiting_sets sets"""
         instance_classes = set()
         limiting_sets = set()
@@ -349,7 +388,6 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         performances.add(problem.performances)
         return performances
 
-
     def lsets_to_yaml(limiting_sets):
         """Returns an array of lines to add to the yaml array, representing the
         Limiting_sets part"""
@@ -370,7 +408,8 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
             aux = i_c._replace(
                 limiting_sets="[{}]".format(
                     ", ".join("*{}".format(ls.id) for ls in i_c.limiting_sets)
-                ))
+                )
+            )
             lines.append("  - &{}".format(aux.id))
             lines.extend(_namedtuple_to_yaml(aux, level=2))
         lines.append("")
@@ -415,11 +454,13 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         for prob in problems.values():
             aux = prob._replace(
                 instance_classes="[{}]".format(
-                    ", ".join("*{}".format(ic.id) for ic in prob.instance_classes)),
+                    ", ".join("*{}".format(ic.id) for ic in prob.instance_classes)
+                ),
                 workloads="[{}]".format(
-                    ", ".join("*{}".format(wl.id) for wl in prob.workloads)),
-                performances="*{}".format(prob.performances.id)
-                )
+                    ", ".join("*{}".format(wl.id) for wl in prob.workloads)
+                ),
+                performances="*{}".format(prob.performances.id),
+            )
             lines.append("  - &{}".format(aux.id))
             lines.extend(_namedtuple_to_yaml(aux, level=2))
         lines.append("")
@@ -442,14 +483,22 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
         return lines
 
     # "main" body of the function
-    yam: List[str] = []       # List of lines of the resulting yaml
-    apps: Set[App] = set()    # set of App objects indirectly referenced from the problems
-                              #   (via the workloads)
-    workloads: Set[Workload] = set() # set of Workload objects directly referenced from the problems
-    limiting_sets: Set[LimitingSet] = set()   # set of Limiting_set objects indirectly referenced from the problems
-                                              #  (via instance classes)
-    instance_classes: Set[InstanceClass] = set()  # set of Instance_class objects directly referenced from the problems
-    performances: Set[PerformanceSet] = set()      # set of Performance objects directly referenced from the problem
+    yam: List[str] = []  # List of lines of the resulting yaml
+    apps: Set[App] = set()  # set of App objects indirectly referenced from the problems
+    #   (via the workloads)
+    workloads: Set[
+        Workload
+    ] = set()  # set of Workload objects directly referenced from the problems
+    limiting_sets: Set[
+        LimitingSet
+    ] = set()  # set of Limiting_set objects indirectly referenced from the problems
+    #  (via instance classes)
+    instance_classes: Set[
+        InstanceClass
+    ] = set()  # set of Instance_class objects directly referenced from the problems
+    performances: Set[
+        PerformanceSet
+    ] = set()  # set of Performance objects directly referenced from the problem
 
     for prob in problems.values():
         _wls, _apps = collect_workloads_and_apps(prob)
@@ -469,6 +518,7 @@ def problems_to_yaml(problems: Mapping[str, Problem]) -> str:     # pylint: disa
     yam.extend(probs_to_yaml(problems))
     return "\n".join(yam)
 
+
 def preprocess_yaml(input_yaml_filename: str) -> str:
     """Reads a YAML file and "expands" the ``Problems_from_file`` section.
 
@@ -483,13 +533,16 @@ def preprocess_yaml(input_yaml_filename: str) -> str:
     _open = _get_open_function_from_extension(input_yaml_filename)
 
     output = []
-    with _open(input_yaml_filename, mode='rt', encoding="utf8") as istream:
+    with _open(input_yaml_filename, mode="rt", encoding="utf8") as istream:
         for line in istream:
             if line.startswith("Problems_from_file"):
                 filename = line.split(":")[1].strip()
-                line = read_file_relative_to(filename=filename, relative_to=input_yaml_filename)
+                line = read_file_relative_to(
+                    filename=filename, relative_to=input_yaml_filename
+                )
             output.append(line)
     return "".join(output)
+
 
 def read_file_relative_to(filename: str, relative_to: str, kind: str = "yaml") -> str:
     """Reads one file by its name, considered relative to other filename.
@@ -514,7 +567,8 @@ def read_file_relative_to(filename: str, relative_to: str, kind: str = "yaml") -
     path_to_input = os.path.abspath(relative_to)
     path_to_filename = os.path.join(os.path.dirname(path_to_input), filename)
     _open = _get_open_function_from_extension(filename, kind=kind)
-    return _open(path_to_filename, mode='rt', encoding="utf8").read()
+    return _open(path_to_filename, mode="rt", encoding="utf8").read()
+
 
 def read_from_relative_csv(filename: str, relative_to: str) -> Tuple[float, ...]:
     """Reads and parses the content of one file, given its name considered relative to other
@@ -536,6 +590,7 @@ def read_from_relative_csv(filename: str, relative_to: str) -> Tuple[float, ...]
     content = read_file_relative_to(filename, relative_to, kind="csv")
     return tuple(float(line) for line in content.split("\n") if line)
 
+
 def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     """Converts a list of solutions to a YAML string.
 
@@ -551,11 +606,13 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     def solution_i_to_yaml(sol: SolutionI) -> List[str]:
         """Converts a SolutionI to a yaml string"""
         lines: List[str] = []
-        lines.extend((
-            "- &{}".format(sol.id),
-            "  id: {}".format(sol.id),
-            "  problem: *{}".format(sol.problem.id),
-        ))
+        lines.extend(
+            (
+                "- &{}".format(sol.id),
+                "  id: {}".format(sol.id),
+                "  problem: *{}".format(sol.problem.id),
+            )
+        )
         lines.append("  solving_stats:")
         lines.extend(solving_stats_to_yaml(sol.solving_stats, level=2))
 
@@ -570,22 +627,23 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     def solution_ii_to_yaml(sol: SolutionII) -> List[str]:
         """Converts a SolutionII to a yaml string"""
         lines: List[str] = []
-        lines.extend((
-            "- &{}".format(sol.id),
-            "  id: {}".format(sol.id),
-            "  problem: *{}".format(sol.problem.id),
-            "  previous_phase: *{}".format(sol.previous_phase.id),
-        ))
+        lines.extend(
+            (
+                "- &{}".format(sol.id),
+                "  id: {}".format(sol.id),
+                "  problem: *{}".format(sol.problem.id),
+                "  previous_phase: *{}".format(sol.previous_phase.id),
+            )
+        )
 
         lines.append("  global_solving_stats:")
-        lines.extend(global_solving_stats_to_yaml(
-            sol.global_solving_stats, level=2))
+        lines.extend(global_solving_stats_to_yaml(sol.global_solving_stats, level=2))
 
         lines.append("  solving_stats:")
         for i, stats in enumerate(sol.solving_stats):
-            lines.append("    - # {} -> {}".format(
-                i, sol.allocation.workload_tuples[i]
-            ))
+            lines.append(
+                "    - # {} -> {}".format(i, sol.allocation.workload_tuples[i])
+            )
             lines.extend(solving_stats_to_yaml(stats, level=3))
 
         lines.append("  allocation:")
@@ -595,46 +653,53 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     def solving_stats_to_yaml(stats: SolvingStats, level: int) -> List[str]:
         """Converts a SolvingStats to a yaml string"""
         lines: List[str] = []
-        tab = "  "*level
-        lines.extend((
-            "{}creation_time: {}".format(tab, stats.creation_time),
-            "{}solving_time: {}".format(tab, stats.solving_time),
-            "{}optimal_cost: {}".format(tab, _yamlize(stats.optimal_cost)),
-            "{}algorithm:".format(tab),
-            "  {}malloovia:".format(tab),
-        ))
-        lines.extend(_namedtuple_to_yaml(stats.algorithm, level=level+2))
+        tab = "  " * level
+        lines.extend(
+            (
+                "{}creation_time: {}".format(tab, stats.creation_time),
+                "{}solving_time: {}".format(tab, stats.solving_time),
+                "{}optimal_cost: {}".format(tab, _yamlize(stats.optimal_cost)),
+                "{}algorithm:".format(tab),
+                "  {}malloovia:".format(tab),
+            )
+        )
+        lines.extend(_namedtuple_to_yaml(stats.algorithm, level=level + 2))
         return lines
 
-    def global_solving_stats_to_yaml(stats: GlobalSolvingStats,
-                                     level: int) -> List[str]:
+    def global_solving_stats_to_yaml(
+        stats: GlobalSolvingStats, level: int
+    ) -> List[str]:
         """Converts a GlobalSolvingStats to a yaml string"""
         lines: List[str] = []
-        tab = "  "*level
-        lines.extend((
-            "{}creation_time: {}".format(tab, stats.creation_time),
-            "{}solving_time: {}".format(tab, stats.solving_time),
-            "{}optimal_cost: {}".format(tab, stats.optimal_cost),
-            "{}status: {}".format(tab, stats.status.name),
-        ))
+        tab = "  " * level
+        lines.extend(
+            (
+                "{}creation_time: {}".format(tab, stats.creation_time),
+                "{}solving_time: {}".format(tab, stats.solving_time),
+                "{}optimal_cost: {}".format(tab, stats.optimal_cost),
+                "{}status: {}".format(tab, stats.status.name),
+            )
+        )
         return lines
 
-
-    def reserved_allocation_to_yaml(rsv: ReservedAllocation,
-                                    level: int) -> List[str]:
+    def reserved_allocation_to_yaml(rsv: ReservedAllocation, level: int) -> List[str]:
         """Converts a ReservedAllocation to a yaml string"""
         lines: List[str] = []
-        tab = "  "*level
+        tab = "  " * level
         if rsv is None:
             instance_classes: List[InstanceClass] = []
             vms_number: List[float] = []
         else:
             instance_classes = list(rsv.instance_classes)
             vms_number = list(rsv.vms_number)
-        lines.extend((
-            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(instance_classes)),
-            "{}vms_number: [{}]".format(tab, ", ".join(str(v) for v in vms_number)),
-        ))
+        lines.extend(
+            (
+                "{}instance_classes: [{}]".format(
+                    tab, list_of_references_to_yaml(instance_classes)
+                ),
+                "{}vms_number: [{}]".format(tab, ", ".join(str(v) for v in vms_number)),
+            )
+        )
         return lines
 
     def list_of_references_to_yaml(lst: Sequence[Any]) -> str:
@@ -648,7 +713,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
     def allocation_to_yaml(alloc: AllocationInfo, level: int) -> List[str]:
         """Converts an AllocationInfo to a yaml string"""
         lines: List[str] = []
-        tab = "  "*level
+        tab = "  " * level
         if alloc is None:
             instance_classes: List[InstanceClass] = []
             workload_tuples: List[Tuple[float, ...]] = []
@@ -661,24 +726,27 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
             apps = list(alloc.apps)
             repeats = list(alloc.repeats)
             values = list(alloc.values)
-        lines.extend((
-            "{}instance_classes: [{}]".format(tab, list_of_references_to_yaml(instance_classes)),
-            "{}apps: [{}]".format(tab, list_of_references_to_yaml(apps)),
-            "{}workload_tuples: [{}]".format(tab, list_to_yaml(list(wl) for wl in workload_tuples)),
-            "{}repeats: [{}]".format(tab, list_to_yaml(repeats)),
-        ))
+        lines.extend(
+            (
+                "{}instance_classes: [{}]".format(
+                    tab, list_of_references_to_yaml(instance_classes)
+                ),
+                "{}apps: [{}]".format(tab, list_of_references_to_yaml(apps)),
+                "{}workload_tuples: [{}]".format(
+                    tab, list_to_yaml(list(wl) for wl in workload_tuples)
+                ),
+                "{}repeats: [{}]".format(tab, list_to_yaml(repeats)),
+            )
+        )
         if values:
             lines.append("{}vms_number:".format(tab))
             for i, t_alloc in enumerate(values):
-                lines.append("  {}- # {} -> {}".format(
-                    tab, i, workload_tuples[i]
-                ))
+                lines.append("  {}- # {} -> {}".format(tab, i, workload_tuples[i]))
                 for app_alloc in t_alloc:
                     lines.append("    {}- [{}]".format(tab, app_alloc))
         else:
             lines.append("{}vms_number: []".format(tab))
         return lines
-
 
     # First collect all problems referenced in the solutions
     problems = set()
@@ -697,9 +765,8 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
             lines.extend(solution_ii_to_yaml(solution))
         else:
             raise ValueError(
-                "Solution({}) is of unknown type {}"
-                .format(solution.id, type(solution))
-                )
+                "Solution({}) is of unknown type {}".format(solution.id, type(solution))
+            )
     return "\n".join(lines)
 
 
@@ -715,6 +782,7 @@ def _namedtuple_to_yaml(data, level=2):
     """
     return _dict_to_yaml(data._asdict(), level)
 
+
 def _dict_to_yaml(data, level):
     """Converts to yaml any dictionary, by iterating through its keys and values.
 
@@ -728,8 +796,9 @@ def _dict_to_yaml(data, level):
     lines = []
     for key, value in data.items():
         value = _yamlize(value)
-        lines.append("{}{}: {}".format("  "*level, key, value))
+        lines.append("{}{}: {}".format("  " * level, key, value))
     return lines
+
 
 def _yamlize(value: Any) -> Any:
     """Converts a python value to a valid YAML representation.
@@ -753,25 +822,28 @@ def _yamlize(value: Any) -> Any:
         return "false"
 
     if hasattr(value, "name"):  # For Enums
-        return value.name                  # pylint:disable=no-member
+        return value.name  # pylint:disable=no-member
 
     return value
+
 
 def get_schema() -> Dict[str, Any]:
     """Returns Malloovia's json schema which can be used to validate the
     problem and solution files"""
 
-    path_to_schema = os.path.join(os.path.dirname(__file__),
-                                  "malloovia.schema.yaml")
+    path_to_schema = os.path.join(os.path.dirname(__file__), "malloovia.schema.yaml")
     with open(path_to_schema) as schema_file:
         schema = yaml.safe_load(schema_file)
     return schema
 
-def allocation_info_as_dicts(alloc: AllocationInfo,
-                             use_ids=True,
-                             include_timeslot=True,
-                             include_workloads=True,
-                             include_repeats=True) -> Iterable[Mapping[Any, Any]]:
+
+def allocation_info_as_dicts(
+    alloc: AllocationInfo,
+    use_ids=True,
+    include_timeslot=True,
+    include_workloads=True,
+    include_repeats=True,
+) -> Iterable[Mapping[Any, Any]]:
     """Converts the :class:`AllocationInfo` structure to a sequence of dicts, which
     are more convenient for analysis with pandas. Each element of the returned
     sequence is a python dictionary whose keys and values are:
@@ -873,6 +945,7 @@ def allocation_info_as_dicts(alloc: AllocationInfo,
                     result["repeats"] = alloc.repeats[slot]
                 yield result
 
+
 def _get_open_function_from_extension(filename, kind="yaml"):
     """Returns the function open is the extension is ``kind`` or
     'gzip.open' if it is ``kind``.gz'; otherwise, raises ValueError
@@ -884,8 +957,12 @@ def _get_open_function_from_extension(filename, kind="yaml"):
     else:
         raise ValueError("Invalid filename. Should be .{} or .{}.gz".format(kind, kind))
 
+
 __all__ = [
-    'read_problems_from_yaml', 'read_problems_from_github',
-    'problems_to_yaml', 'solutions_to_yaml', 'get_schema',
-    'allocation_info_as_dicts'
+    "read_problems_from_yaml",
+    "read_problems_from_github",
+    "problems_to_yaml",
+    "solutions_to_yaml",
+    "get_schema",
+    "allocation_info_as_dicts",
 ]

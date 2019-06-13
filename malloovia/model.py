@@ -14,13 +14,14 @@ other entities.
 """
 
 from collections import namedtuple
-from typing import (Mapping, Tuple, NamedTuple, Optional, Set, Dict)
+from typing import Mapping, Tuple, NamedTuple, Optional, Set, Dict
 import copy
 import sys
 
 
 ###############################################################################
 # All main malloovia entities are defined as namedtuples, via typing.NamedTuple
+
 
 def remove_namedtuple_defaultdoc(cls):
     """This decorator removes the __doc__ which namedtuples get
@@ -37,6 +38,7 @@ def remove_namedtuple_defaultdoc(cls):
 class Problem(NamedTuple):
     """Problem description.
     """
+
     id: str
     """:obj:`str`: arbitary id for the problem object."""
 
@@ -89,13 +91,14 @@ class Workload(NamedTuple):
     """str: optional name of the file from which this workload was read,
             or None if the filename is unknown."""
 
+
 @remove_namedtuple_defaultdoc
 class InstanceClass(NamedTuple):
     "InstanceClass characterization"
 
     id: str
     """str: arbitrary id for the instance class object."""
-    
+
     name: str
     """str: name of the instance class, usually built from the name of the VM type
         and the name of the limiting set in which it is deployed."""
@@ -122,6 +125,7 @@ class InstanceClass(NamedTuple):
     cores: float = 1.0
     """float: number of cores this instance class has (defaults to 1)."""
 
+
 @remove_namedtuple_defaultdoc
 class LimitingSet(NamedTuple):
     """LimitingSet restrictions."""
@@ -143,14 +147,15 @@ class LimitingSet(NamedTuple):
 
 @remove_namedtuple_defaultdoc
 class App(NamedTuple):
-   """App identifier.
+    """App identifier.
    """
 
-   id: str
-   """str: arbitrary id for the App object"""
+    id: str
+    """str: arbitrary id for the App object"""
 
-   name: str = "unnamed"
-   """name of the app"""
+    name: str = "unnamed"
+    """name of the app"""
+
 
 @remove_namedtuple_defaultdoc
 class PerformanceSet(NamedTuple):
@@ -163,8 +168,9 @@ class PerformanceSet(NamedTuple):
     """:class:`.PerformanceValues`: storage of the performance values per app
         and instance class."""
 
-    time_unit: str    
+    time_unit: str
     """str: length of the timeslot used in performance values ("y", "h", "m", or "s")."""
+
 
 @remove_namedtuple_defaultdoc
 class System(NamedTuple):
@@ -203,12 +209,10 @@ def check_valid_problem(problem: Problem) -> Problem:
     apps = tuple(w.app for w in problem.workloads)
     length = len(problem.workloads[0].values)
     if not all(len(w.values) == length for w in problem.workloads):
-        raise ValueError(
-            "All workloads in the problem should have the same length")
+        raise ValueError("All workloads in the problem should have the same length")
     for iclass in problem.instance_classes:
         if iclass not in problem.performances.values.keys():
-            raise ValueError(
-                "Performance data for {} is missing".format(iclass))
+            raise ValueError("Performance data for {} is missing".format(iclass))
     for iclass, ic_data in problem.performances.values.items():
         for app in apps:
             if app not in ic_data.keys():
@@ -232,8 +236,9 @@ def system_from_problem(problem: Problem) -> System:
         name=problem.name,
         apps=tuple(w.app for w in problem.workloads),
         instance_classes=problem.instance_classes,
-        performances=problem.performances
+        performances=problem.performances,
     )
+
 
 ######################################################################################
 
@@ -243,7 +248,7 @@ def system_from_problem(problem: Problem) -> System:
 # The class uses __slots__ to prevent the addition of more attributes, and
 # an internal attribute __perfs whose name is mangled by python to make
 # more difficult to access to it from outside the class.
-class PerformanceValues(object):                 # pylint: disable=R0903
+class PerformanceValues(object):  # pylint: disable=R0903
     """Stores the performance of each app for each instance class.
 
     If ``p`` is an instance of this class, performance data can be accessed like
@@ -278,7 +283,7 @@ class PerformanceValues(object):                 # pylint: disable=R0903
         # The second is indexed by ic and app ids, which is more convenient
         # for repr(), to_yaml(), and get_by_id()
         self.__perfs = copy.deepcopy(data)
-        self.__perfs_by_id: Dict[str, Dict[str,float]] = {}
+        self.__perfs_by_id: Dict[str, Dict[str, float]] = {}
         self.__ics: Set[InstanceClass] = set()
         self.__apps: Set[App] = set()
         for ins, app_perfs in data.items():
@@ -288,7 +293,6 @@ class PerformanceValues(object):                 # pylint: disable=R0903
                 self.__apps.add(app)
                 aux[app.id] = perf
             self.__perfs_by_id[ins.id] = aux
-
 
     def __getitem__(self, ic_app: Tuple[InstanceClass, App]) -> float:
         """Get the performance of a pair (instance class, application).
@@ -321,9 +325,7 @@ class PerformanceValues(object):                 # pylint: disable=R0903
     def __repr__(self):
         """Abridged representation of the class"""
         return "{} for ({} instance_classes x {} apps)".format(
-            self.__class__.__name__,
-            len(self.__ics),
-            len(self.__apps)
+            self.__class__.__name__, len(self.__ics), len(self.__apps)
         )
 
     def items(self):
@@ -347,9 +349,12 @@ class PerformanceValues(object):                 # pylint: disable=R0903
     def __iter__(self):
         """Implements the iterable interface, by returning an iterator"""
         perfs = self.__perfs
-        return ((ic, app, perfs[ic][app])
-                for ic in sorted(perfs)
-                for app in sorted(perfs[ic]))
+        return (
+            (ic, app, perfs[ic][app])
+            for ic in sorted(perfs)
+            for app in sorted(perfs[ic])
+        )
+
 
 class TimeUnit:
     """Provides a simple method to perform time units conversions.
@@ -364,12 +369,12 @@ class TimeUnit:
     conversion_factors = {
         "s": 1,
         "m": 60,
-        "h": 60*60,
-        "d": 24*60*60,
-        "y": 365*24*60*60
+        "h": 60 * 60,
+        "d": 24 * 60 * 60,
+        "y": 365 * 24 * 60 * 60,
     }
 
-    def __init__(self, unit:str, amount: float=1) -> None:
+    def __init__(self, unit: str, amount: float = 1) -> None:
         """Creates a TimeUnit for the given unit.
 
         Args:
@@ -396,7 +401,11 @@ class TimeUnit:
             ValueError if "to_unit" is not a known time unit.
         """
         self.check_valid_unit(to_unit)
-        return self.amount * self.conversion_factors[self.unit]/self.conversion_factors[to_unit]
+        return (
+            self.amount
+            * self.conversion_factors[self.unit]
+            / self.conversion_factors[to_unit]
+        )
 
     @classmethod
     def check_valid_unit(cls, unit):
@@ -404,14 +413,23 @@ class TimeUnit:
         the class attribute conversion_factors. Note that this allows for using inheritance
         to extend the list of known time units."""
         if unit not in cls.conversion_factors.keys():
-            raise ValueError("Unit {} is not valid. Use one of {}".format(
-                repr(unit), list(cls.conversion_factors.keys())))
+            raise ValueError(
+                "Unit {} is not valid. Use one of {}".format(
+                    repr(unit), list(cls.conversion_factors.keys())
+                )
+            )
 
 
 __all__ = [
-    'Workload', 'App', 'InstanceClass', 'LimitingSet',
-    'PerformanceSet', 'PerformanceValues',
-    'Problem', 'check_valid_problem',
-    'System', 'system_from_problem',
-    'TimeUnit'
+    "Workload",
+    "App",
+    "InstanceClass",
+    "LimitingSet",
+    "PerformanceSet",
+    "PerformanceValues",
+    "Problem",
+    "check_valid_problem",
+    "System",
+    "system_from_problem",
+    "TimeUnit",
 ]
