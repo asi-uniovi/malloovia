@@ -2,13 +2,14 @@
 # import pandas as pd
 """Malloovia interface to LP solver"""
 
-from typing import (Sequence)
+from typing import (Sequence, List, Any)
 from itertools import product as cartesian_product
 from inspect import ismethod
 from collections import namedtuple
 import os
 
-import pulp
+import pulp  # type: ignore
+
 from pulp import (LpContinuous, LpInteger, LpVariable, lpSum,
                   LpProblem, LpMinimize, LpMaximize, PulpSolverError,
                   COIN_CMD, log, subprocess)
@@ -92,7 +93,7 @@ class MallooviaLp:
                 "vms_number must be the same"
             self.fixed_vms = dict(zip(preallocation.instance_classes, preallocation.vms_number))
         self.relaxed = relaxed
-        self.pulp_problem = None
+        self.pulp_problem: Any = None
         self.load_hist = get_load_hist_from_load(self.workloads)
         self.solver_called = False
 
@@ -434,9 +435,9 @@ class MallooviaLp:
         if self.pulp_problem.status != pulp.LpStatusOptimal:
             raise ValueError("Cannot get the cost when the status is not optimal")
 
-        allocation = []
+        allocation: List[float] = []
         for _ in self.load_hist:  # Loop over all possible workloads
-            workload_allocation = []
+            workload_allocation: List[float] = []
             for iclass in self.cooked.instances_res:
                 i_allocation = sum(
                     self.cooked.map_res[app, iclass].varValue

@@ -5,10 +5,10 @@
 from typing import (Union, NamedTuple, Optional, List, Sequence, Tuple)
 from enum import IntEnum
 from functools import singledispatch
-import pulp
+import pulp # type: ignore
 
 from .model import (
-    remove_namedtuple_defaultdoc, PerformanceSet, 
+    remove_namedtuple_defaultdoc, PerformanceValues, 
     InstanceClass, App, Problem,
 )
 
@@ -46,7 +46,7 @@ class MallooviaHistogram(dict):
     values are the count of the number of times that the tuple is observed
     in the computed period."""
 
-    apps = None
+    apps: Tuple[App, ...] = None
     """The apps attribute stores a tuple with references to the apps involved
     in the workload. The order of this tuple must match the order of workloads for
     of each tuple which acts as key in the histogram"""
@@ -98,7 +98,8 @@ class SolvingStats(NamedTuple):
     """float: time required to solve the LP problem."""
 
     optimal_cost: float
-    """float: optimal cost as reported by the LP solver."""
+    """float: optimal cost as reported by the LP solver, or None if no solution
+           was found."""
 
 
 @remove_namedtuple_defaultdoc
@@ -130,11 +131,11 @@ class ReservedAllocation(NamedTuple):
     """Stores the number of reserved instances to allocate during the whole reservation
     period."""
 
-    instance_classes: List[InstanceClass]
-    """List[:class:`.InstanceClass`]: list of reserved instance classes
+    instance_classes: Tuple[InstanceClass, ...]
+    """List[:class:`.InstanceClass`, ...]: list of reserved instance classes
            in the allocation."""
-    vms_number: List[float]
-    """List[float]: list of numbers, representing the number of instance classes
+    vms_number: Tuple[float, ...]
+    """List[float, ...]: list of numbers, representing the number of instance classes
         to be reserved of each type. The corresponding instance class is obtained
         from the ``instance_classes`` attribute using the same index."""
 
@@ -144,8 +145,8 @@ class AllocationInfo(NamedTuple):
     """Stores the allocation for a series of timeslots. It can be a single
     timeslot, or the sequence of allocations for the whole reservation period."""
 
-    values: Sequence[Sequence[Tuple[float]]]
-    """Sequence[Sequence[Tuple[float]]]: contains a list with one element
+    values: List[List[List[float]]]
+    """List[List[List[float]]]: contains a list with one element
            per timeslot. Each element in this sequence is a list (with one element
            per app), which is in turn a list (with one element per instance class).
            These values are numbers which can represent the number of instance
@@ -181,8 +182,8 @@ class AllocationInfo(NamedTuple):
     """Sequence[:class:`.InstanceClass`]: is a list of instance classes to give
            meaning to the third index in ``values``."""
 
-    workload_tuples: Sequence[Tuple[float]]
-    """Sequence[Tuple[float]]: is a list of workload tuples to give meaning to the
+    workload_tuples: Sequence[Tuple[float, ...]]
+    """Sequence[Tuple[float, ...]]: is a list of workload tuples to give meaning to the
            first index in ``values``. Each element is a tuple with as many values
            as apps, being each one the workload for each app."""
 
@@ -223,7 +224,7 @@ class SolutionII(NamedTuple):
     """:class:`.Problem`: reference to the problem which originated
           this solution."""
 
-    solving_stats: SolvingStats
+    solving_stats: Sequence[SolvingStats]
     """:Sequence[class:`.SolvingStats`]: list of the SolvingStats for
         each timeslot."""
 
@@ -270,7 +271,7 @@ def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo:
 @singledispatch
 def compute_allocation_performance(
         alloc: AllocationInfo,
-        performances: PerformanceSet) -> AllocationInfo:
+        performances: PerformanceValues) -> AllocationInfo:
     """Computes the performance of each element of the allocation.
 
     Args:
@@ -300,7 +301,7 @@ def compute_allocation_performance(
 
 @compute_allocation_performance.register(SolutionI)
 @compute_allocation_performance.register(SolutionII)
-def _(solution: Union[SolutionI, SolutionII]) -> AllocationInfo: # pylint:disable=function-redefined
+def __(solution: Union[SolutionI, SolutionII]) -> AllocationInfo: # pylint:disable=function-redefined
     return compute_allocation_performance(
         solution.allocation,
         solution.problem.performances.values)

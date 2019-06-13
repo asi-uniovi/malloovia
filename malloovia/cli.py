@@ -3,11 +3,11 @@
 import time
 import traceback
 import os.path
-import ruamel.yaml
-from jsonschema import validate
+import ruamel.yaml                           # type: ignore
+from jsonschema import validate              # type: ignore
 import click
-from pulp import COIN
-from progress.bar import ShadyBar
+from pulp import COIN                        # type: ignore
+from progress.bar import ShadyBar            # type: ignore
 
 from . import __version__
 from .util import (

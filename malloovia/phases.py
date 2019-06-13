@@ -1,9 +1,9 @@
 """Module providing high level PhaseI and PhaseII classes which drive the solver"""
-from typing import (Tuple, Any, Sequence)
+from typing import (Dict, Tuple, Any, Sequence, Optional)
 import time
 from collections import OrderedDict
 import collections.abc
-from pulp import (PulpSolverError)
+from pulp import (PulpSolverError)  # type: ignore
 
 from .lpsolver import (
     MallooviaLp,
@@ -36,9 +36,9 @@ class PhaseI:
             ValueError: if the problem stores inconsistent information.
         """
         self.problem = check_valid_problem(problem)
-        self.__solution = None
+        self.__solution:Optional[SolutionI] = None
         self.__full_solution = None
-        self._malloovia_lp = None
+        self._malloovia_lp: Optional[MallooviaLp] = None
         self.solving_stats = None
 
     def solve(self, gcd: bool=True, solver: Any=None, relaxed: bool=False) -> SolutionI:
@@ -111,7 +111,7 @@ class OmniscientSTWPredictor(STWPredictor):     # pylint: disable=invalid-name,t
     tuple at a time, whose elements are :class:`Workload` whose
     ``values`` have a length of 1 (the workload for the next timeslot).
     """
-    def __init__(self, stwp: Tuple[Workload]) -> None:
+    def __init__(self, stwp: Tuple[Workload, ...]) -> None:
         """Constructor.
 
         Args:
@@ -169,7 +169,7 @@ class PhaseII:
 
         # Hash table with the already computed solutions for each workload level
         # initially empty
-        self._solutions = OrderedDict()
+        self._solutions: Dict[Tuple[System, Sequence[Workload]], SolutionI] = OrderedDict()
 
         # Internal handle to the inner malloovia LP solver
         self._malloovia_lp = None
@@ -327,6 +327,11 @@ class PhaseIIGuided(PhaseII):
     method, to allow it to receive a `preallocation` parameter which enforces some
     minimum number of on-demand instances and a fixed number of reserved instances.
     """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._solutions: Dict[Tuple[System, ReservedAllocation, Sequence[Workload]], SolutionI] = OrderedDict()
+
     def solve_timeslot(self,
                        workloads: Sequence[Workload],
                        system: System=None,
@@ -431,7 +436,7 @@ class PhaseIIGuided(PhaseII):
 
 def _solve_dual_problem(system: System,
                         workloads: Sequence[Workload],
-                        preallocation: ReservedAllocation,
+                        preallocation: Optional[ReservedAllocation],
                         solver: Any=None) -> SolutionI:
     """Uses MallooviaLpMaximizeTimeslotPerformance to solve the dual problem
 

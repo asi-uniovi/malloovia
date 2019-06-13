@@ -14,7 +14,7 @@ other entities.
 """
 
 from collections import namedtuple
-from typing import (Mapping, Tuple, NamedTuple, Optional, ClassVar, Set)
+from typing import (Mapping, Tuple, NamedTuple, Optional, Set, Dict)
 import copy
 import sys
 
@@ -43,11 +43,11 @@ class Problem(NamedTuple):
     name: str
     """:obj:`str`: name for the problem."""
 
-    workloads: Tuple["Workload"]
-    """:obj:`Tuple` [:class:`.Workload`]: Tuple of workloads, one per application."""
+    workloads: Tuple["Workload", ...]
+    """:obj:`Tuple` [:class:`.Workload`, ...]: Tuple of workloads, one per application."""
 
-    instance_classes: Tuple["InstanceClass"]
-    """Tuple[:class:`.InstanceClass`]: Tuple of Instance Classes, 
+    instance_classes: Tuple["InstanceClass", ...]
+    """Tuple[:class:`.InstanceClass`, ...]: Tuple of Instance Classes, 
             describing the cloud infrastructure which has to serve the workload."""
 
     performances: "PerformanceSet"
@@ -68,8 +68,8 @@ class Workload(NamedTuple):
     description: str
     "str: description of the workload."
 
-    values: Tuple[float]
-    """Tuple[float]: the value of the predicted workload for several timeslots.
+    values: Tuple[float, ...]
+    """Tuple[float, ...]: the value of the predicted workload for several timeslots.
             It can store also a single value if it is the short-term workload
             prediction, but even in this case it must be a tuple (with
             a single element)."""
@@ -176,12 +176,12 @@ class System(NamedTuple):
     name: str
     "str: name for the problem."
 
-    apps: Tuple[App]
-    """Tuple[:class:`.App`]: Tuple of objects of type :class:`.App` describing
+    apps: Tuple[App, ...]
+    """Tuple[:class:`.App`, ...]: Tuple of objects of type :class:`.App` describing
         the applications that are used in the system."""
 
-    instance_classes: Tuple[InstanceClass]
-    """Tuple[:class:`.InstanceClass`]: Tuple of objects of type
+    instance_classes: Tuple[InstanceClass, ...]
+    """Tuple[:class:`.InstanceClass`, ...]: Tuple of objects of type
         :class:`.InstanceClass`, describing the cloud infrastructure which
         has to serve the workload."""
 
@@ -278,9 +278,9 @@ class PerformanceValues(object):                 # pylint: disable=R0903
         # The second is indexed by ic and app ids, which is more convenient
         # for repr(), to_yaml(), and get_by_id()
         self.__perfs = copy.deepcopy(data)
-        self.__perfs_by_id = {}
-        self.__ics = set()
-        self.__apps = set()
+        self.__perfs_by_id: Dict[str, Dict[str,float]] = {}
+        self.__ics: Set[InstanceClass] = set()
+        self.__apps: Set[App] = set()
         for ins, app_perfs in data.items():
             self.__ics.add(ins)
             aux = {}
