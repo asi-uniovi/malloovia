@@ -53,6 +53,8 @@ lint: ## check style with pylint
 test: ## run tests quickly with the default Python
 	py.test
 	
+mypy:
+	mypy --no-strict-optional malloovia tests
 
 test-all: ## run tests on every Python version with tox
 	tox

@@ -1,62 +1,89 @@
 ﻿"""Testing the new interface to malloovia"""
-import pytest
 import random
 import copy
 import os
+import pytest  # type: ignore
 from unittest.mock import patch
-from pulp import (COIN, PulpSolverError)
+from pulp import COIN, PulpSolverError  # type: ignore
 
-from malloovia.model import (LimitingSet, InstanceClass, App, Workload,
-                   Problem, System, system_from_problem,
-                   PerformanceSet, PerformanceValues)
+from malloovia.model import (
+    LimitingSet,
+    InstanceClass,
+    App,
+    Workload,
+    Problem,
+    System,
+    system_from_problem,
+    PerformanceSet,
+    PerformanceValues,
+)
 from malloovia import util
 from malloovia import phases
 from malloovia.solution_model import (
-    Status, ReservedAllocation, AllocationInfo, MallooviaHistogram,
-    compute_allocation_cost, compute_allocation_performance)
+    Status,
+    ReservedAllocation,
+    AllocationInfo,
+    MallooviaHistogram,
+    compute_allocation_cost,
+    compute_allocation_performance,
+)
 from malloovia import lpsolver
 from .datapaths import PresetDataPaths
 
 # pylint: disable=invalid-name
 # Test functions have unwieldy names
 
+
 class PresetProblemPaths(PresetDataPaths):
     """This class stores in self.problems a dictionary with the paths to the
     yaml files which store the problem examples"""
+
     def setup(self):
         super().setup()
         self.problems = {}
         for problem in ("problem1", "problem2", "problem3"):
             self.problems[problem] = self.get_problem("%s.yaml" % problem)
 
+
 class TestProblemCreation:
     """Tests the creation of valid and invalid problems, from code"""
+
     def test_detect_wrong_workload(self):
         "Detect mismatch in workload lengths"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
-             price=10, time_unit="h")
+            "Instance",
+            name="Instance",
+            limiting_sets=(limiting_set,),
+            max_vms=10,
+            price=10,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32), time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
-                     time_unit="h")
+            Workload(
+                "wl_app0", description="Test", app=app0, values=(30, 32), time_unit="h"
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                instance: {app0: 10, app1: 500},
-                })
-            )
+            values=PerformanceValues({instance: {app0: 10, app1: 500}}),
+        )
         problem = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance,),
-            performances=performances
+            performances=performances,
         )
         with pytest.raises(ValueError, match="should have the same length"):
             problem = phases.PhaseI(problem)
@@ -65,32 +92,55 @@ class TestProblemCreation:
         "Detect when the performance for one instance_class is missing"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance1 = InstanceClass(
-            "Instance1", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
-             price=10, time_unit="h")
+            "Instance1",
+            name="Instance",
+            limiting_sets=(limiting_set,),
+            max_vms=10,
+            price=10,
+            time_unit="h",
+        )
         instance2 = InstanceClass(
-            "Instance2", name="Instance", limiting_sets=(limiting_set,), max_vms=10,
-             price=10, time_unit="h")
+            "Instance2",
+            name="Instance",
+            limiting_sets=(limiting_set,),
+            max_vms=10,
+            price=10,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 40), time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 40),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                instance1: {app0: 10, app1: 500},
-                # Wrong, instance2 performance is missing
-                })
-            )
+            values=PerformanceValues(
+                {
+                    instance1: {app0: 10, app1: 500},
+                    # Wrong, instance2 performance is missing
+                }
+            ),
+        )
         problem = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance1, instance2),
-            performances=performances
+            performances=performances,
         )
         expected_msg = "Performance data for {} is missing".format(instance2)
         with pytest.raises(ValueError) as excp:
@@ -101,34 +151,59 @@ class TestProblemCreation:
         "Detect when the performance for one app is missing"
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance1 = InstanceClass(
-            "Instance1", name="Instance1", limiting_sets=(limiting_set,), price=10, max_vms=10,
-            time_unit="h")
+            "Instance1",
+            name="Instance1",
+            limiting_sets=(limiting_set,),
+            price=10,
+            max_vms=10,
+            time_unit="h",
+        )
         instance2 = InstanceClass(
-            "Instance2", name="Instance2", limiting_sets=(limiting_set,), price=10, max_vms=10,
-            time_unit="h")
+            "Instance2",
+            name="Instance2",
+            limiting_sets=(limiting_set,),
+            price=10,
+            max_vms=10,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 34), time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 34),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                instance1: {app0: 10, app1: 500},
-                instance2: {app0: 10} # Error, missing app1
-                })
-            )
+            values=PerformanceValues(
+                {
+                    instance1: {app0: 10, app1: 500},
+                    instance2: {app0: 10},  # Error, missing app1
+                }
+            ),
+        )
         problem = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(instance1, instance2),
-            performances=performances
+            performances=performances,
         )
-        expected_msg = "Performance data for {} in {} is missing".format(app1, instance2)
+        expected_msg = "Performance data for {} in {} is missing".format(
+            app1, instance2
+        )
         with pytest.raises(ValueError) as excp:
             problem = phases.PhaseI(problem)
         assert expected_msg == str(excp.value)
@@ -143,36 +218,57 @@ class TestProblemCreation:
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20)
 
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, price=10,
-            time_unit="h")
+            "m3large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=20,
+            price=10,
+            time_unit="h",
+        )
         m3large_r = InstanceClass(
-            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, price=7,
-            time_unit="h", is_reserved=True)
+            "m3large_r",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
-                     time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 30, 30),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194, 1003),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                m3large: {app0: 10, app1: 500},
-                m3large_r: {app0: 10, app1: 500}
-                })
-            )
+            values=PerformanceValues(
+                {m3large: {app0: 10, app1: 500}, m3large_r: {app0: 10, app1: 500}}
+            ),
+        )
         problem_phase_i = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
-            performances=performances)
+            performances=performances,
+        )
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
         # to_yaml = util.problems_to_yaml({"p1": problem_phase_i})
         # with (open("test_data/problems/problem1.yaml", "w")) as output:
@@ -192,37 +288,58 @@ class TestProblemCreation:
         # No limit for m3large (max_vms=0), for better testing coverage
         # This lack of limit does not make the problem feasible, due to the limiting_set
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=0, price=10,
-            time_unit="h")
+            "m3large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=0,
+            price=10,
+            time_unit="h",
+        )
         m3large_r = InstanceClass(
-            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, price=7,
-            time_unit="h", is_reserved=True)
+            "m3large_r",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
-                     time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 30, 30),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194, 1003),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                m3large: {app0: 10, app1: 500},
-                m3large_r: {app0: 10, app1: 500}
-                })
-            )
+            values=PerformanceValues(
+                {m3large: {app0: 10, app1: 500}, m3large_r: {app0: 10, app1: 500}}
+            ),
+        )
 
         problem_phase_i = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
-            performances=performances)
+            performances=performances,
+        )
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
         # to_yaml = util.problems_to_yaml({"p1": problem_phase_i})
         # with (open("test_data/problems/problem2.yaml", "w")) as output:
@@ -237,43 +354,64 @@ class TestProblemCreation:
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20, max_cores=10)
 
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=2, price=10,
-            time_unit="h")
+            "m3large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=20,
+            cores=2,
+            price=10,
+            time_unit="h",
+        )
         m3large_r = InstanceClass(
-            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, cores=4, price=7,
-            time_unit="h", is_reserved=True)
+            "m3large_r",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            cores=4,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
         app0 = App("app0", name="Test app0")
         app1 = App("app1", name="Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
-                     time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 30, 30),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194, 1003),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                m3large: {app0: 10, app1: 500},
-                m3large_r: {app0: 10, app1: 500}
-                })
-            )
+            values=PerformanceValues(
+                {m3large: {app0: 10, app1: 500}, m3large_r: {app0: 10, app1: 500}}
+            ),
+        )
         problem_phase_i = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
-            performances=performances)
+            performances=performances,
+        )
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         # to_yaml = util.problems_to_yaml({"p1": problem_phase_i})
         # with (open("test_data/problems/problem3.yaml", "w")) as output:
         #     output.write(to_yaml)
-
-
 
 
 class TestProblemSolvingPhaseI(PresetProblemPaths):
@@ -284,33 +422,49 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         max_instances = 20
         performance = 1000
         base_price = 100
-        period_in_hours = 365*24
+        period_in_hours = 365 * 24
         region = LimitingSet("Cloud1", name="Cloud1", max_vms=max_instances)
         i0 = InstanceClass(
-            "ondemand", name="On Demand", price=base_price, limiting_sets=(region,),
-            max_vms=max_instances, is_reserved=False, time_unit="h")
+            "ondemand",
+            name="On Demand",
+            price=base_price,
+            limiting_sets=(region,),
+            max_vms=max_instances,
+            is_reserved=False,
+            time_unit="h",
+        )
         i1 = InstanceClass(
-            "reserved", name="Reserved", price=0.8*base_price, limiting_sets=(region,),
-            max_vms=max_instances, is_reserved=True, time_unit="h")
+            "reserved",
+            name="Reserved",
+            price=0.8 * base_price,
+            limiting_sets=(region,),
+            max_vms=max_instances,
+            is_reserved=True,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         workloads = (
-            Workload("ltwp", description="Test", app=app0, values=(2*performance,)*period_in_hours,
-                     time_unit="h"),
+            Workload(
+                "ltwp",
+                description="Test",
+                app=app0,
+                values=(2 * performance,) * period_in_hours,
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="perfs",
             time_unit="h",
-            values=PerformanceValues({
-                i0: {app0: performance},
-                i1: {app0: performance}
-            })
+            values=PerformanceValues(
+                {i0: {app0: performance}, i1: {app0: performance}}
+            ),
         )
         problem = Problem(
             id="example",
             name="PhaseI",
             workloads=workloads,
-            instance_classes=(i0,i1),
-            performances=performances
+            instance_classes=(i0, i1),
+            performances=performances,
         )
         phaseI = phases.PhaseI(problem)
 
@@ -328,23 +482,25 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         workload_index = 0
         app0_index = solution.allocation.apps.index(app0)
         i0_index = solution.allocation.instance_classes.index(i0)
-        assert (solution.allocation.values[workload_index][app0_index][i0_index]
-                == 0)
+        assert solution.allocation.values[workload_index][app0_index][i0_index] == 0
 
         # These values should match the PuLP solution, still stored in MallooviaLp object
         # but this is not the intended way to get it, because it is implementation dependent
         assert phaseI._malloovia_lp.get_status() == Status.optimal
         assert phaseI._malloovia_lp.cooked.map_res[app0, i1].varValue == 2
-        assert phaseI._malloovia_lp.cooked.map_dem[app0, i0, (2*performance,)].varValue == 0
+        assert (
+            phaseI._malloovia_lp.cooked.map_dem[app0, i0, (2 * performance,)].varValue
+            == 0
+        )
 
     def test_read_problem1_and_solve_it(self):
         """Solve problem 1 which has optimal cost of 178"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         solution = phases.PhaseI(problem_phase_i).solve()
@@ -355,27 +511,27 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
 
         # The solution uses all reserved instance classes
         reserved_instances = tuple(
-            ins for ins in problem_phase_i.instance_classes if ins.is_reserved)
-        assert (solution.reserved_allocation.instance_classes
-                == reserved_instances)
+            ins for ins in problem_phase_i.instance_classes if ins.is_reserved
+        )
+        assert solution.reserved_allocation.instance_classes == reserved_instances
 
         # The solution of this problem uses 3 reserved instances of the same VM
         # for each app so the reserved_allocation should be a tuple with a single
         # element (since there is a single reserved instance class), with value 6
         # (the sum for all apps)
-        assert (solution.reserved_allocation.vms_number == (6,))
+        assert solution.reserved_allocation.vms_number == (6,)
 
         # Check the histogram computed by MallooviaLp
-        assert set(solution.allocation.repeats) == set((2,1,1))
+        assert set(solution.allocation.repeats) == set((2, 1, 1))
 
     def test_read_infeasible_problem2_and_solve_it(self):
         """Solve problem2, which is infeasible"""
         problems = util.read_problems_from_yaml(self.problems["problem2"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         phaseI = phases.PhaseI(problem_phase_i)
@@ -397,10 +553,10 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         """Solve problem2, which is infeasible even if relaxed"""
         problems = util.read_problems_from_yaml(self.problems["problem2"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         phaseI = phases.PhaseI(problem_phase_i)
@@ -420,7 +576,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         """Solve problem 3 which has optimal cost of 226"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         solution = phases.PhaseI(problem_phase_i).solve()
         assert solution.solving_stats.algorithm.status == Status.optimal
@@ -436,10 +592,10 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         """Solve problem 3 in relaxed form which has optimal cost of 180"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         solution = phases.PhaseI(problem_phase_i).solve(relaxed=True)
@@ -456,16 +612,26 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         """Solve one problem too big for the fixed maxSeconds"""
         problems = util.read_problems_from_yaml(self.problems["problem3"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
         app0 = problem_phase_i.workloads[0].app
         app1 = problem_phase_i.workloads[1].app
 
         # Use larger workloads (200 timeslots, random values)
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, time_unit="h",
-                    values=tuple(random.randint(25, 35) for i in range(200))),
-            Workload("wl_app1", description="Test", app=app1, time_unit="h",
-                    values=tuple(random.randint(990, 1200) for i in range(200)))
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                time_unit="h",
+                values=tuple(random.randint(25, 35) for i in range(200)),
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                time_unit="h",
+                values=tuple(random.randint(990, 1200) for i in range(200)),
+            ),
         )
 
         problem_phase_i = problem_phase_i._replace(workloads=workloads)
@@ -489,7 +655,7 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         if malloovia handles correctly the exception"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         phaseI = phases.PhaseI(problem_phase_i)
 
@@ -497,8 +663,9 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         # actually calls cbc. The patched version simply raises PulpSolverError
         # and we test that malloovia catches it and sets the correct status
         # optimal_cost and lower_bound
-        with patch.object(COIN, "solve_CBC",
-                        side_effect=PulpSolverError("Mocked error")):
+        with patch.object(
+            COIN, "solve_CBC", side_effect=PulpSolverError("Mocked error")
+        ):
             solution = phaseI.solve()
         assert solution.solving_stats.algorithm.status == Status.cbc_error
         assert solution.solving_stats.optimal_cost is None
@@ -511,33 +678,56 @@ class TestProblemSolvingPhaseI(PresetProblemPaths):
         amazon_dem = LimitingSet("Cloud1", name="Cloud1", max_vms=20, max_cores=15)
         amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20, max_cores=10)
         m3large = InstanceClass(
-            "m3large", name="m3large", limiting_sets=(amazon_dem,), max_vms=20, cores=4, price=10,
-            time_unit="h")
+            "m3large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=20,
+            cores=4,
+            price=10,
+            time_unit="h",
+        )
         m3large_r = InstanceClass(
-            "m3large_r", name="m3large_r", limiting_sets=(amazon_res,), max_vms=20, cores=4,
-            price=7, time_unit="h", is_reserved=True)
+            "m3large_r",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            cores=4,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
         app0 = App("app0", "Test app0")
         app1 = App("app1", "Test app1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 30, 30),
-                     time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 30, 30),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194, 1003),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                m3large: {app0: 10, app1: 500},
-                m3large_r: {app0: 10, app1: 500}
-                })
-            )
+            values=PerformanceValues(
+                {m3large: {app0: 10, app1: 500}, m3large_r: {app0: 10, app1: 500}}
+            ),
+        )
         problem = Problem(
             id="example",
             name="Test problem",
             workloads=workloads,
             instance_classes=(m3large, m3large_r),
-            performances=performances)
+            performances=performances,
+        )
 
         solution = phases.PhaseI(problem).solve()
         assert solution.solving_stats.algorithm.status == Status.integer_infeasible
@@ -550,28 +740,44 @@ class TestMallooviaLpApi(PresetProblemPaths):
     def test_invalid_problem_missing_performance(self):
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10,
-            time_unit="h")
+            "Instance",
+            name="Instance",
+            limiting_sets=(limiting_set,),
+            price=10,
+            max_vms=10,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32, 44), time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
-                     time_unit="h")
+            Workload(
+                "wl_app0",
+                description="Test",
+                app=app0,
+                values=(30, 32, 44),
+                time_unit="h",
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                instance: {app0: 10, },  # Missing app1 performance
-                })
-            )
+            values=PerformanceValues(
+                {instance: {app0: 10}}  # Missing app1 performance
+            ),
+        )
         system = System(
             id="infr",
             name="Test problem",
             apps=(app0, app1),
             instance_classes=(instance,),
-            performances=performances
+            performances=performances,
         )
 
         with pytest.raises(KeyError):
@@ -580,38 +786,52 @@ class TestMallooviaLpApi(PresetProblemPaths):
     def test_invalid_problem_missing_workload_value(self):
         limiting_set = LimitingSet("Cloud", name="Cloud", max_vms=20)
         instance = InstanceClass(
-            "Instance", name="Instance", limiting_sets=(limiting_set,), price=10, max_vms=10,
-            time_unit="h")
+            "Instance",
+            name="Instance",
+            limiting_sets=(limiting_set,),
+            price=10,
+            max_vms=10,
+            time_unit="h",
+        )
         app0 = App("App0", name="App0")
         app1 = App("App1", name="App1")
         workloads = (
-            Workload("wl_app0", description="Test", app=app0, values=(30, 32,), time_unit="h"),
-            Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194),
-                     time_unit="h")
+            Workload(
+                "wl_app0", description="Test", app=app0, values=(30, 32), time_unit="h"
+            ),
+            Workload(
+                "wl_app1",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194),
+                time_unit="h",
+            ),
         )
         performances = PerformanceSet(
             id="test_perfs",
             time_unit="h",
-            values=PerformanceValues({
-                instance: {app0: 10, app1: 20},  # Missing app1 performance
-                })
-            )
+            values=PerformanceValues(
+                {instance: {app0: 10, app1: 20}}  # Missing app1 performance
+            ),
+        )
         system = System(
             id="example",
             name="Test problem",
             apps=(app0, app1),
             instance_classes=(instance,),
-            performances=performances
+            performances=performances,
         )
         # The error is detected in the constructor
-        with pytest.raises(AssertionError, match="All workloads should have the same length"):
+        with pytest.raises(
+            AssertionError, match="All workloads should have the same length"
+        ):
             lp = lpsolver.MallooviaLp(system, workloads)
 
     def test_read_problem1_and_solve_it(self):
         """Solve problem 1 which has optimal cost of 178"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         system = system_from_problem(problem_phase_i)
         lp = lpsolver.MallooviaLp(system, problem_phase_i.workloads)
@@ -637,7 +857,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
         """Solve problem 1, but forcing the number of reserved VMS"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
         rsv_instance = problem_phase_i.instance_classes[1]
         assert rsv_instance.is_reserved
 
@@ -648,9 +868,8 @@ class TestMallooviaLpApi(PresetProblemPaths):
             system,
             problem_phase_i.workloads,
             preallocation=ReservedAllocation(
-                instance_classes=(rsv_instance,),
-                vms_number=(4,)
-            )
+                instance_classes=(rsv_instance,), vms_number=(4,)
+            ),
         )
 
         lp.create_problem()
@@ -668,7 +887,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
         in a real case, but Malloovia allows for it, and so this test covers that path."""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
         dem_instance = problem_phase_i.instance_classes[0]
         assert not dem_instance.is_reserved
 
@@ -679,9 +898,8 @@ class TestMallooviaLpApi(PresetProblemPaths):
             system,
             problem_phase_i.workloads,
             preallocation=ReservedAllocation(
-                instance_classes=(dem_instance,),
-                vms_number=(4,)
-            )
+                instance_classes=(dem_instance,), vms_number=(4,)
+            ),
         )
 
         lp.create_problem()
@@ -700,7 +918,7 @@ class TestMallooviaLpApi(PresetProblemPaths):
         times to emulate phase II, passing 1 timeslot at time"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution = phases.PhaseI(problem).solve()
         rsv_instances = solution.reserved_allocation.vms_number[0]
@@ -737,18 +955,28 @@ class TestMallooviaLpApi(PresetProblemPaths):
             # against this ordering (it should be invariant because each workload
             # includes an app field to relate it to the apps)
             workloads = (
-                Workload("wl_app1", description="Test", app=app1, values=(wl1,), time_unit="h"),
-                Workload("wl_app0", description="Test", app=app0, values=(wl0,), time_unit="h"),
+                Workload(
+                    "wl_app1",
+                    description="Test",
+                    app=app1,
+                    values=(wl1,),
+                    time_unit="h",
+                ),
+                Workload(
+                    "wl_app0",
+                    description="Test",
+                    app=app0,
+                    values=(wl0,),
+                    time_unit="h",
+                ),
             )
 
             # Solve this problem with malloovia. Since the workloads are composed of
             # a single value, this is equivalent to solve a single timeslot
             # If we fix to 6 the number of reserved instances, this emulates phaseII
             lp = lpsolver.MallooviaLp(
-                system,
-                workloads,
-                preallocation=solution.reserved_allocation
-                )
+                system, workloads, preallocation=solution.reserved_allocation
+            )
             lp.create_problem()
             lp.solve()
 
@@ -768,17 +996,15 @@ class TestMallooviaLpApi(PresetProblemPaths):
 
             # Check that allocation for this particular workload tuple matches
             # the one found in phaseII
-            wl_index = solution.allocation.workload_tuples.index((wl0,wl1))
-            assert  full.values[0] == solution.allocation.values[wl_index]
-
-
+            wl_index = solution.allocation.workload_tuples.index((wl0, wl1))
+            assert full.values[0] == solution.allocation.values[wl_index]
 
     def test_emulate_phase_ii_with_predictor(self):
         """Solve phaseI using malloovia and the full workload, then use malloovia again several
         times to emulate phase II, passing 1 timeslot at time, using Omniscient predictor"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution = phases.PhaseI(problem).solve()
         rsv_instances = solution.reserved_allocation.vms_number[0]
@@ -816,8 +1042,8 @@ class TestMallooviaLpApi(PresetProblemPaths):
             lp = lpsolver.MallooviaLp(
                 system=system,
                 workloads=workloads,
-                preallocation=solution.reserved_allocation
-                )
+                preallocation=solution.reserved_allocation,
+            )
             lp.create_problem()
             lp.solve()
 
@@ -839,8 +1065,9 @@ class TestMallooviaLpApi(PresetProblemPaths):
             # the one found in phaseII
             wl0 = workloads[0].values[0]
             wl1 = workloads[1].values[0]
-            wl_index = solution.allocation.workload_tuples.index((wl0,wl1))
-            assert  full.values[0] == solution.allocation.values[wl_index]
+            wl_index = solution.allocation.workload_tuples.index((wl0, wl1))
+            assert full.values[0] == solution.allocation.values[wl_index]
+
 
 class TestPhaseII(PresetProblemPaths):
     def test_phase_ii_should_reject_infeasible_phase_i(self):
@@ -848,10 +1075,10 @@ class TestPhaseII(PresetProblemPaths):
         # Read problem2, which is infeasible
         problems = util.read_problems_from_yaml(self.problems["problem2"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         phaseI = phases.PhaseI(problem_phase_i)
@@ -859,23 +1086,22 @@ class TestPhaseII(PresetProblemPaths):
 
         assert solution.solving_stats.algorithm.status == Status.infeasible
 
-        with pytest.raises(ValueError, match="phase_i_solution passed to PhaseII is not optimal"):
+        with pytest.raises(
+            ValueError, match="phase_i_solution passed to PhaseII is not optimal"
+        ):
             phaseII = phases.PhaseII(problem=problem_phase_i, phase_i_solution=solution)
 
     def test_phase_ii_complete(self):
         """Solve phaseI and phaseII"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
         assert rsv_instances == 6
 
-        phase_ii = phases.PhaseII(
-            problem=problem,
-            phase_i_solution=solution_i
-        )
+        phase_ii = phases.PhaseII(problem=problem, phase_i_solution=solution_i)
         solution_ii = phase_ii.solve_period()
 
         timeslots = len(problem.workloads[0].values)
@@ -883,27 +1109,29 @@ class TestPhaseII(PresetProblemPaths):
         assert len(solution_ii.allocation.values) == timeslots
         # The first and last timeslot have exactly the same workload,
         # so they should have exactly the same solution
-        assert (solution_ii.allocation.values[0]
-                is solution_ii.allocation.values[-1])
+        assert solution_ii.allocation.values[0] is solution_ii.allocation.values[-1]
 
         # Since we used the same STWP than LTWP, each timeslot should
         # have the same allocation than in phaseI
-        for wl_tupl, alloc in zip(solution_ii.allocation.workload_tuples,
-                                solution_ii.allocation.values):
+        for wl_tupl, alloc in zip(
+            solution_ii.allocation.workload_tuples, solution_ii.allocation.values
+        ):
             phase_i_index = solution_i.allocation.workload_tuples.index(wl_tupl)
             phase_i_alloc = solution_i.allocation.values[phase_i_index]
             assert phase_i_alloc == alloc
 
         # Also both solution should have the same cost
-        assert (solution_ii.global_solving_stats.optimal_cost
-                == solution_i.solving_stats.optimal_cost)
+        assert (
+            solution_ii.global_solving_stats.optimal_cost
+            == solution_i.solving_stats.optimal_cost
+        )
 
     def test_phase_ii_with_unfeasible_timeslots(self):
         """Solves phaseI and then uses for phase II a different STWP which causes
         unfeasible timeslots"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
@@ -914,18 +1142,25 @@ class TestPhaseII(PresetProblemPaths):
         # timeslot 1, which will cause that timeslot to be infeasible
         app0, app1 = (wl.app for wl in problem.workloads)
         phase_ii_problem = problem._replace(
-            workloads = (
-                Workload("wl_app0", description="Test", app=app0, values=(30, 270, 30, 30),
-                         time_unit="h"),
-                Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                         time_unit="h")
+            workloads=(
+                Workload(
+                    "wl_app0",
+                    description="Test",
+                    app=app0,
+                    values=(30, 270, 30, 30),
+                    time_unit="h",
+                ),
+                Workload(
+                    "wl_app1",
+                    description="Test",
+                    app=app1,
+                    values=(1003, 1200, 1194, 1003),
+                    time_unit="h",
+                ),
             )
         )
 
-        phase_ii = phases.PhaseII(
-            problem=phase_ii_problem,
-            phase_i_solution=solution_i
-        )
+        phase_ii = phases.PhaseII(problem=phase_ii_problem, phase_i_solution=solution_i)
         solution_ii = phase_ii.solve_period()
         assert solution_ii.global_solving_stats.status == Status.overfull
 
@@ -934,8 +1169,7 @@ class TestPhaseII(PresetProblemPaths):
         assert len(solution_ii.allocation.values) == timeslots
         # The first and last timeslot have exactly the same workload,
         # so they should have exactly the same solution
-        assert (solution_ii.allocation.values[0]
-                is solution_ii.allocation.values[-1])
+        assert solution_ii.allocation.values[0] is solution_ii.allocation.values[-1]
 
         # Timeslot 1 is overfull
         assert solution_ii.solving_stats[1].algorithm.status == Status.overfull
@@ -947,16 +1181,17 @@ class TestPhaseII(PresetProblemPaths):
         # The global solution is more costly, as much as the solution
         # for the overfull timeslot
 
+
 class TestPhaseIIGuided(PresetProblemPaths):
     def test_phase_ii_should_reject_infeasible_phase_i(self):
         """Trying to solve phase ii when phase i was infeasible should raise ValueError"""
         # Read problem2, which is infeasible
         problems = util.read_problems_from_yaml(self.problems["problem2"])
         assert "example" in problems
-        problem_phase_i = problems['example']
+        problem_phase_i = problems["example"]
 
         # Some trivial checks
-        assert problem_phase_i.performances.values.get_by_ids('m3large', 'app0') == 10
+        assert problem_phase_i.performances.values.get_by_ids("m3large", "app0") == 10
         assert problem_phase_i.workloads[0].values[1] == 32
 
         phaseI = phases.PhaseI(problem_phase_i)
@@ -964,23 +1199,24 @@ class TestPhaseIIGuided(PresetProblemPaths):
 
         assert solution.solving_stats.algorithm.status == Status.infeasible
 
-        with pytest.raises(ValueError, match="phase_i_solution passed to PhaseII is not optimal"):
-            phaseII = phases.PhaseIIGuided(problem=problem_phase_i, phase_i_solution=solution)
+        with pytest.raises(
+            ValueError, match="phase_i_solution passed to PhaseII is not optimal"
+        ):
+            phaseII = phases.PhaseIIGuided(
+                problem=problem_phase_i, phase_i_solution=solution
+            )
 
     def test_phase_ii_complete(self):
         """Solve phaseI and phaseII"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
         assert rsv_instances == 6
 
-        phase_ii = phases.PhaseIIGuided(
-            problem=problem,
-            phase_i_solution=solution_i
-        )
+        phase_ii = phases.PhaseIIGuided(problem=problem, phase_i_solution=solution_i)
         solution_ii = phase_ii.solve_period()
 
         timeslots = len(problem.workloads[0].values)
@@ -988,40 +1224,39 @@ class TestPhaseIIGuided(PresetProblemPaths):
         assert len(solution_ii.allocation.values) == timeslots
         # The first and last timeslot have exactly the same workload,
         # so they should have exactly the same solution
-        assert (solution_ii.allocation.values[0]
-                is solution_ii.allocation.values[-1])
+        assert solution_ii.allocation.values[0] is solution_ii.allocation.values[-1]
 
         # Since we used the same STWP than LTWP, each timeslot should
         # have the same allocation than in phaseI
-        for wl_tupl, alloc in zip(solution_ii.allocation.workload_tuples,
-                                solution_ii.allocation.values):
+        for wl_tupl, alloc in zip(
+            solution_ii.allocation.workload_tuples, solution_ii.allocation.values
+        ):
             phase_i_index = solution_i.allocation.workload_tuples.index(wl_tupl)
             phase_i_alloc = solution_i.allocation.values[phase_i_index]
             assert phase_i_alloc == alloc
 
         # Also both solution should have the same cost
-        assert (solution_ii.global_solving_stats.optimal_cost
-                == solution_i.solving_stats.optimal_cost)
+        assert (
+            solution_ii.global_solving_stats.optimal_cost
+            == solution_i.solving_stats.optimal_cost
+        )
 
     def test_phase_ii_by_timeslot(self):
         """Solve phaseI and phaseII using solve_timeslot() repeatdly"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
         assert rsv_instances == 6
 
-        phase_ii = phases.PhaseIIGuided(
-            problem=problem,
-            phase_i_solution=solution_i
-        )
+        phase_ii = phases.PhaseIIGuided(problem=problem, phase_i_solution=solution_i)
 
         predictor = phases.OmniscientSTWPredictor(problem.workloads)
-        
+
         solutions = []
-        for workloads in predictor: 
+        for workloads in predictor:
             solutions.append(phase_ii.solve_timeslot(workloads=workloads))
 
         solution_ii = phase_ii._aggregate_solutions(solutions)
@@ -1031,56 +1266,57 @@ class TestPhaseIIGuided(PresetProblemPaths):
         assert len(solution_ii.allocation.values) == timeslots
         # The first and last timeslot have exactly the same workload,
         # so they should have exactly the same solution
-        assert (solution_ii.allocation.values[0]
-                is solution_ii.allocation.values[-1])
+        assert solution_ii.allocation.values[0] is solution_ii.allocation.values[-1]
 
         # Since we used the same STWP than LTWP, each timeslot should
         # have the same allocation than in phaseI
-        for wl_tupl, alloc in zip(solution_ii.allocation.workload_tuples,
-                                solution_ii.allocation.values):
+        for wl_tupl, alloc in zip(
+            solution_ii.allocation.workload_tuples, solution_ii.allocation.values
+        ):
             phase_i_index = solution_i.allocation.workload_tuples.index(wl_tupl)
             phase_i_alloc = solution_i.allocation.values[phase_i_index]
             assert phase_i_alloc == alloc
 
         # Also both solution should have the same cost
-        assert (solution_ii.global_solving_stats.optimal_cost
-                == solution_i.solving_stats.optimal_cost)
+        assert (
+            solution_ii.global_solving_stats.optimal_cost
+            == solution_i.solving_stats.optimal_cost
+        )
 
     def test_phase_ii_single_timeslot_minimum_on_demand(self):
         """Solve phaseI and phaseII using solve_timeslot() and fixing minimum on-demand VMs"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
         assert rsv_instances == 6
 
-        phase_ii = phases.PhaseIIGuided(
-            problem=problem,
-            phase_i_solution=solution_i
-        )
+        phase_ii = phases.PhaseIIGuided(problem=problem, phase_i_solution=solution_i)
 
         predictor = phases.OmniscientSTWPredictor(problem.workloads)
-       
-        ondemand_ics = [ic for ic in problem.instance_classes if not ic.is_reserved]
-        ondemand_preallocation = ReservedAllocation((ondemand_ics[0],), (3,)) # At least 3
-        workloads = list(predictor)[0] 
 
-        sol_timeslot = phase_ii.solve_timeslot(workloads=workloads,
-                                               preallocation=ondemand_preallocation)
+        ondemand_ics = [ic for ic in problem.instance_classes if not ic.is_reserved]
+        ondemand_preallocation = ReservedAllocation(
+            (ondemand_ics[0],), (3,)
+        )  # At least 3
+        workloads = list(predictor)[0]
+
+        sol_timeslot = phase_ii.solve_timeslot(
+            workloads=workloads, preallocation=ondemand_preallocation
+        )
         assert sol_timeslot.reserved_allocation.vms_number[0] == 6
         alloc = sol_timeslot.allocation.values[0]
-        assert alloc[0][0] + alloc[1][0] == 6   # Reserved
-        assert alloc[0][1] + alloc[1][1] == 3   # ondemand
-
+        assert alloc[0][0] + alloc[1][0] == 6  # Reserved
+        assert alloc[0][1] + alloc[1][1] == 3  # ondemand
 
     def test_phase_ii_with_unfeasible_timeslots(self):
         """Solves phaseI and then uses for phase II a different STWP which causes
         unfeasible timeslots"""
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         solution_i = phases.PhaseI(problem).solve()
         rsv_instances = solution_i.reserved_allocation.vms_number[0]
@@ -1091,17 +1327,26 @@ class TestPhaseIIGuided(PresetProblemPaths):
         # timeslot 1, which will cause that timeslot to be infeasible
         app0, app1 = (wl.app for wl in problem.workloads)
         phase_ii_problem = problem._replace(
-            workloads = (
-                Workload("wl_app0", description="Test", app=app0, values=(30, 270, 30, 30),
-                         time_unit="h"),
-                Workload("wl_app1", description="Test", app=app1, values=(1003, 1200, 1194, 1003),
-                         time_unit="h")
+            workloads=(
+                Workload(
+                    "wl_app0",
+                    description="Test",
+                    app=app0,
+                    values=(30, 270, 30, 30),
+                    time_unit="h",
+                ),
+                Workload(
+                    "wl_app1",
+                    description="Test",
+                    app=app1,
+                    values=(1003, 1200, 1194, 1003),
+                    time_unit="h",
+                ),
             )
         )
 
         phase_ii = phases.PhaseIIGuided(
-            problem=phase_ii_problem,
-            phase_i_solution=solution_i
+            problem=phase_ii_problem, phase_i_solution=solution_i
         )
         solution_ii = phase_ii.solve_period()
         assert solution_ii.global_solving_stats.status == Status.overfull
@@ -1111,8 +1356,7 @@ class TestPhaseIIGuided(PresetProblemPaths):
         assert len(solution_ii.allocation.values) == timeslots
         # The first and last timeslot have exactly the same workload,
         # so they should have exactly the same solution
-        assert (solution_ii.allocation.values[0]
-                is solution_ii.allocation.values[-1])
+        assert solution_ii.allocation.values[0] is solution_ii.allocation.values[-1]
 
         # Timeslot 1 is overfull
         assert solution_ii.solving_stats[1].algorithm.status == Status.overfull
@@ -1124,14 +1368,10 @@ class TestPhaseIIGuided(PresetProblemPaths):
         # The global solution is more costly, as much as the solution
         # for the overfull timeslot
 
-class TestModelClasses(PresetProblemPaths):
 
+class TestModelClasses(PresetProblemPaths):
     def test_MallooviaHistogram(self):
-        hist = MallooviaHistogram({
-            (10, 10): 2,
-            (10, 20): 1,
-            (20, 20): 3
-        })
+        hist = MallooviaHistogram({(10, 10): 2, (10, 20): 1, (20, 20): 3})
         assert isinstance(hist, dict)
         assert hist[(10, 10)] == 2
         assert hist[(10, 20)] == 1
@@ -1140,19 +1380,29 @@ class TestModelClasses(PresetProblemPaths):
         assert str(hist) == "MallooviaHistogram with 3 values"
 
     def test_PerformanceValues(self):
-        instances = [InstanceClass(id="ic%d"%i, name=None, limiting_sets=None, max_vms=0, 
-                                   price=1, time_unit="h")
-                     for i in range(3)]
-        apps = [App(id="app%d"%i, name="App %d" % i)
-                for i in range(2)]
-        values = PerformanceValues({
-            ic: {app: i*len(apps)+j for j, app in enumerate(apps)}
-            for i, ic in enumerate(instances)
-        })
+        instances = [
+            InstanceClass(
+                id="ic%d" % i,
+                name=None,
+                limiting_sets=None,
+                max_vms=0,
+                price=1,
+                time_unit="h",
+            )
+            for i in range(3)
+        ]
+        apps = [App(id="app%d" % i, name="App %d" % i) for i in range(2)]
+        values = PerformanceValues(
+            {
+                ic: {app: i * len(apps) + j for j, app in enumerate(apps)}
+                for i, ic in enumerate(instances)
+            }
+        )
         # Check the stored data
-        assert (str(values) ==
-                "PerformanceValues for ({} instance_classes x {} apps)"
-                .format(len(instances), len(apps))
+        assert str(
+            values
+        ) == "PerformanceValues for ({} instance_classes x {} apps)".format(
+            len(instances), len(apps)
         )
 
         for i, (ic, app, value) in enumerate(values):
@@ -1169,7 +1419,7 @@ class TestModelClasses(PresetProblemPaths):
         # Read a problem to get instance class data
         problems = util.read_problems_from_yaml(self.problems["problem1"])
         assert "example" in problems
-        problem = problems['example']
+        problem = problems["example"]
 
         sol_i = phases.PhaseI(problem).solve()
 
@@ -1179,26 +1429,34 @@ class TestModelClasses(PresetProblemPaths):
         # The function allows both an allocation or a solution as input
         costs = compute_allocation_cost(allocation)
         assert costs.units == "cost"
-        assert costs.values == [[[21.0, 0.0], [21.0, 0.0]],
-                                [[21.0, 10.0], [21.0, 0.0]],
-                                [[21.0, 0.0], [21.0, 0.0]]]
+        assert costs.values == [
+            [[21.0, 0.0], [21.0, 0.0]],
+            [[21.0, 10.0], [21.0, 0.0]],
+            [[21.0, 0.0], [21.0, 0.0]],
+        ]
 
         costs = compute_allocation_cost(sol_i)
         assert costs.units == "cost"
-        assert costs.values == [[[21.0, 0.0], [21.0, 0.0]],
-                                [[21.0, 10.0], [21.0, 0.0]],
-                                [[21.0, 0.0], [21.0, 0.0]]]
+        assert costs.values == [
+            [[21.0, 0.0], [21.0, 0.0]],
+            [[21.0, 10.0], [21.0, 0.0]],
+            [[21.0, 0.0], [21.0, 0.0]],
+        ]
 
         # For the performances, the input can be a solution or the pair
         # allocation plus performance values
         perfs = compute_allocation_performance(allocation, problem.performances.values)
         assert perfs.units == "rph"
-        assert perfs.values == [[[30.0, 0.0], [1500.0, 0.0]],
-                                [[30.0, 10.0], [1500.0, 0.0]],
-                                [[30.0, 0.0], [1500.0, 0.0]]]
+        assert perfs.values == [
+            [[30.0, 0.0], [1500.0, 0.0]],
+            [[30.0, 10.0], [1500.0, 0.0]],
+            [[30.0, 0.0], [1500.0, 0.0]],
+        ]
 
         perfs = compute_allocation_performance(sol_i)
         assert perfs.units == "rph"
-        assert perfs.values == [[[30.0, 0.0], [1500.0, 0.0]],
-                                [[30.0, 10.0], [1500.0, 0.0]],
-                                [[30.0, 0.0], [1500.0, 0.0]]]
+        assert perfs.values == [
+            [[30.0, 0.0], [1500.0, 0.0]],
+            [[30.0, 10.0], [1500.0, 0.0]],
+            [[30.0, 0.0], [1500.0, 0.0]],
+        ]

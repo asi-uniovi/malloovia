@@ -9,8 +9,8 @@ Installation
 Python version
 --------------
 
-Malloovia requires Python (at least version 3.5) to work. If you don't have Python installed,
-or have a different version an easy way to get python 3.6 for different platforms
+Malloovia requires Python (at least version 3.6) to work. If you don't have Python installed,
+or have a different version an easy way to get python 3.6+ for different platforms
 is to install `anaconda <https://www.continuum.io/downloads>`_ or
 `miniconda <http://conda.pydata.org/miniconda.html>`_.
 
@@ -20,7 +20,7 @@ Ensure that you have the correct version::
   Python 3.6.1 :: Continuum Analytics, Inc.
 
 Although the message after the ``::`` can be different in your system, the version should be
-at least ``3.5.0``. If you get ``2.7.*`` instead, try again using ``python3`` command instead
+at least ``3.6.1``. If you get ``2.7.*`` instead, try again using ``python3`` command instead
 of ``python``. In the remaining of this section we will write ``python``, but you have to write
 ``python3`` if your system defaults to version 2.7.
 
