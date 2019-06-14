@@ -1176,7 +1176,7 @@ class TestPhaseII(PresetProblemPaths):
         # The overfull timeslot has a solution with cost 242
         assert solution_ii.solving_stats[1].optimal_cost == 242
         # And assigns 4 reserved an 20 on demand instances to app0
-        assert solution_ii.allocation.values[1][0] == [4, 20]
+        assert solution_ii.allocation.values[1][0] == (4, 20)
 
         # The global solution is more costly, as much as the solution
         # for the overfull timeslot
@@ -1363,7 +1363,7 @@ class TestPhaseIIGuided(PresetProblemPaths):
         # The overfull timeslot has a solution with cost 242
         assert solution_ii.solving_stats[1].optimal_cost == 242
         # And assigns 4 reserved an 20 on demand instances to app0
-        assert solution_ii.allocation.values[1][0] == [4, 20]
+        assert solution_ii.allocation.values[1][0] == (4, 20)
 
         # The global solution is more costly, as much as the solution
         # for the overfull timeslot
@@ -1429,34 +1429,34 @@ class TestModelClasses(PresetProblemPaths):
         # The function allows both an allocation or a solution as input
         costs = compute_allocation_cost(allocation)
         assert costs.units == "cost"
-        assert costs.values == [
-            [[21.0, 0.0], [21.0, 0.0]],
-            [[21.0, 10.0], [21.0, 0.0]],
-            [[21.0, 0.0], [21.0, 0.0]],
-        ]
+        assert costs.values == (
+            ((21.0, 0.0), (21.0, 0.0)),
+            ((21.0, 10.0), (21.0, 0.0)),
+            ((21.0, 0.0), (21.0, 0.0)),
+        )
 
         costs = compute_allocation_cost(sol_i)
         assert costs.units == "cost"
-        assert costs.values == [
-            [[21.0, 0.0], [21.0, 0.0]],
-            [[21.0, 10.0], [21.0, 0.0]],
-            [[21.0, 0.0], [21.0, 0.0]],
-        ]
+        assert costs.values == (
+            ((21.0, 0.0), (21.0, 0.0)),
+            ((21.0, 10.0), (21.0, 0.0)),
+            ((21.0, 0.0), (21.0, 0.0)),
+        )
 
         # For the performances, the input can be a solution or the pair
         # allocation plus performance values
         perfs = compute_allocation_performance(allocation, problem.performances.values)
         assert perfs.units == "rph"
-        assert perfs.values == [
-            [[30.0, 0.0], [1500.0, 0.0]],
-            [[30.0, 10.0], [1500.0, 0.0]],
-            [[30.0, 0.0], [1500.0, 0.0]],
-        ]
+        assert perfs.values == (
+            ((30.0, 0.0), (1500.0, 0.0)),
+            ((30.0, 10.0), (1500.0, 0.0)),
+            ((30.0, 0.0), (1500.0, 0.0)),
+        )
 
         perfs = compute_allocation_performance(sol_i)
         assert perfs.units == "rph"
-        assert perfs.values == [
-            [[30.0, 0.0], [1500.0, 0.0]],
-            [[30.0, 10.0], [1500.0, 0.0]],
-            [[30.0, 0.0], [1500.0, 0.0]],
-        ]
+        assert perfs.values == (
+            ((30.0, 0.0), (1500.0, 0.0)),
+            ((30.0, 10.0), (1500.0, 0.0)),
+            ((30.0, 0.0), (1500.0, 0.0)),
+        )

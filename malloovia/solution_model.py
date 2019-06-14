@@ -151,8 +151,8 @@ class AllocationInfo(NamedTuple):
     """Stores the allocation for a series of timeslots. It can be a single
     timeslot, or the sequence of allocations for the whole reservation period."""
 
-    values: List[List[List[float]]]
-    """List[List[List[float]]]: contains a list with one element
+    values: Tuple[Tuple[Tuple[float, ...], ...], ...]
+    """Tuple[Tuple[Tuple[float, ...], ...], ...]: contains a list with one element
            per timeslot. Each element in this sequence is a list (with one element
            per app), which is in turn a list (with one element per instance class).
            These values are numbers which can represent the number of instance
@@ -265,10 +265,10 @@ def compute_allocation_cost(alloc: AllocationInfo) -> AllocationInfo:
             costs_app = []
             for i, _ in enumerate(app_alloc):
                 costs_app.append(app_alloc[i] * alloc.instance_classes[i].price)
-            costs_row.append(costs_app)
-        costs.append(costs_row)
+            costs_row.append(tuple(costs_app))
+        costs.append(tuple(costs_row))
 
-    return alloc._replace(values=costs, units="cost")
+    return alloc._replace(values=tuple(costs), units="cost")
 
 
 @compute_allocation_cost.register(SolutionI)
@@ -303,9 +303,9 @@ def compute_allocation_performance(
             for i, _ in enumerate(app_alloc):
                 iclass = alloc.instance_classes[i]
                 perfs_app.append(app_alloc[i] * performances[iclass, app])
-            perfs_row.append(perfs_app)
-        perfs.append(perfs_row)
-    return alloc._replace(values=perfs, units="rph")
+            perfs_row.append(tuple(perfs_app))
+        perfs.append(tuple(perfs_row))
+    return alloc._replace(values=tuple(perfs), units="rph")
 
 
 @compute_allocation_performance.register(SolutionI)

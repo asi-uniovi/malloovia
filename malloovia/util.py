@@ -719,13 +719,13 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
             workload_tuples: List[Tuple[float, ...]] = []
             apps: List[App] = []
             repeats: List[int] = []
-            values: List[List[List[float]]] = []
+            values: Tuple[Tuple[Tuple[float, ...], ...], ...] = tuple()
         else:
             instance_classes = list(alloc.instance_classes)
             workload_tuples = list(alloc.workload_tuples)
             apps = list(alloc.apps)
             repeats = list(alloc.repeats)
-            values = list(alloc.values)
+            values = tuple(alloc.values)
         lines.extend(
             (
                 "{}instance_classes: [{}]".format(

@@ -472,8 +472,8 @@ class MallooviaLp:
                     self.cooked.map_dem[app, i, load].varValue
                     for i in self.cooked.instances_dem
                 )
-                workload_allocation.append(row)
-            allocation.append(workload_allocation)
+                workload_allocation.append(tuple(row))
+            allocation.append(tuple(workload_allocation))
         return AllocationInfo(
             apps=tuple(self.system.apps),
             instance_classes=tuple(
@@ -481,7 +481,7 @@ class MallooviaLp:
             ),
             workload_tuples=workload_tuples,
             repeats=repeats,
-            values=allocation,
+            values=tuple(allocation),
             units="vms",
         )
 
