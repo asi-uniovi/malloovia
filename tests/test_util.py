@@ -11,6 +11,8 @@ from malloovia.solution_model import (
     SolutionI,
     SolutionII,
     MallooviaStats,
+    AllocationInfo,
+    ReservedAllocation,
 )
 from .datapaths import PresetDataPaths
 
@@ -180,16 +182,28 @@ class TestUtilModule(PresetDataPaths):
 
         assert len(solutions) == 2
 
-        sol_phase_i = solutions["solution_phase_I"]
-        sol_phase_ii = solutions["solution_phase_II"]
+        sol_phase_i = solutions["solution_i_example1"]
+        sol_phase_ii = solutions["solution_phase_ii_example1"]
 
+        # Check types
         assert isinstance(sol_phase_ii, SolutionII)
-        assert sol_phase_ii.solving_stats[1]["optimal_cost"] == 0.23
-        assert len(sol_phase_ii.allocation["apps"]) == 2
-        assert sol_phase_ii.allocation["apps"][0].name == "Web server"
-        assert sol_phase_i.allocation["apps"][1].name == "Database"
-        assert sol_phase_ii.allocation["instance_classes"][1].name == "m4.medium"
-        assert sol_phase_i.reserved_allocation["instance_classes"][0].name == "m3.large"
-        assert sol_phase_i.reserved_allocation["vms_number"][0] == 20
+        assert isinstance(sol_phase_i.allocation, AllocationInfo)
+        assert isinstance(sol_phase_i.reserved_allocation, ReservedAllocation)
+        assert isinstance(sol_phase_ii.allocation, AllocationInfo)        
         assert isinstance(sol_phase_ii.problem, Problem)
+
+        # Check values
+        assert sol_phase_ii.solving_stats[1]["optimal_cost"] == 132.0
+        assert len(sol_phase_ii.allocation.apps) == 2
+        assert sol_phase_ii.allocation.apps[0].name == "Web server"
+        assert sol_phase_i.allocation.apps[1].name == "Database"
+        assert sol_phase_ii.allocation.instance_classes[1].name == "ondemand m4.xlarge in us.east"
+        assert sol_phase_i.reserved_allocation.instance_classes[0].name == "reserved m3.large in us.east_a"
+        assert sol_phase_i.reserved_allocation.vms_number[0] == 16
         assert sol_phase_ii.previous_phase is sol_phase_i
+        assert len(sol_phase_ii.allocation.values) == len(sol_phase_ii.problem.workloads[0].values)
+
+        # allocation.workload_tuples are read in phase I, but can be absent in Phase_II
+        # In that case it is an empty list
+        assert len(sol_phase_i.allocation.workload_tuples) > 0
+        assert len(sol_phase_ii.allocation.workload_tuples) >= 0

@@ -298,10 +298,22 @@ def solutions_from_dict(
 
     def _convert_allocation(solution_dict):
         alloc = solution_dict["allocation"]
-        solution_dict["allocation"]["apps"] = _dict_list_to_id_list(alloc["apps"])
-        solution_dict["allocation"]["instance_classes"] = _dict_list_to_id_list(
-            alloc["instance_classes"]
+        alloc["apps"] = _dict_list_to_id_list(alloc["apps"])
+        alloc["instance_classes"] = _dict_list_to_id_list(alloc["instance_classes"])
+        alloc["values"] = alloc.pop("vms_number")
+        alloc["values"] = tuple(
+            tuple(tuple(vms) for vms in app) for app in alloc["values"]
         )
+        if "units" not in alloc:
+            alloc["units"] = "vms"
+        if "workload_tuples" not in alloc:
+            alloc["workload_tuples"] = tuple()
+        solution_dict["allocation"] = AllocationInfo(**alloc)
+
+    def _convert_reserved_allocation(solution_dict):
+        alloc = solution_dict["reserved_allocation"]
+        alloc["instance_classes"] = _dict_list_to_id_list(alloc["instance_classes"])
+        solution_dict["reserved_allocation"] = ReservedAllocation(**alloc)
 
     def _create_solution(solution_dict):
         solution_dict["problem"] = ids_to_objects[id(solution_dict["problem"])]
@@ -310,10 +322,7 @@ def solutions_from_dict(
             _convert_allocation(solution_dict)
 
         if _is_phase_i_solution(solution_dict):
-            res_alloc = solution_dict["reserved_allocation"]
-            res_alloc["instance_classes"] = _dict_list_to_id_list(
-                res_alloc["instance_classes"]
-            )
+            _convert_reserved_allocation(solution_dict)
             result = _create_phase_i_solution(solution_dict)
         else:
             result = _create_phase_ii_solution(solution_dict)
