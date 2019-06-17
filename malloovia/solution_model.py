@@ -198,6 +198,18 @@ class AllocationInfo(NamedTuple):
     in which the allocation is per load-level (histogram). It can be an empty
     list (default value) for the case in which the allocation is per time-slot."""
 
+    def __repr__(self):
+        d0 = len(self.values)
+        if self.values:
+            d1 = len(self.values[0])
+        else:
+            d1 = 0
+        if d1:
+            d2 = len(self.values[0][0])
+        else:
+            d2 = 0
+        return "<{} {}x{}x{}>".format(self.__class__.__name__, d0, d1, d2)
+
 
 @remove_namedtuple_defaultdoc
 class SolutionI(NamedTuple):

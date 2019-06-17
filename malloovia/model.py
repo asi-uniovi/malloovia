@@ -30,7 +30,8 @@ def remove_namedtuple_defaultdoc(cls):
     for f in cls._fields:
         getattr(cls, f).__doc__ = None
     cls.__new__.__doc__ = "{}({})".format(cls.__name__, ",".join(cls._fields))
-    cls.__repr__ = lambda self: "{}('{}')".format(cls.__name__, self.id)
+    if "id" in cls._fields:
+        cls.__repr__ = lambda self: "{}('{}')".format(cls.__name__, self.id)
     return cls
 
 
