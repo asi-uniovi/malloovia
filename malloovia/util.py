@@ -10,8 +10,6 @@ from typing import (
     List,
     Set,
     Iterable,
-    NamedTuple,
-    Optional,
 )
 from functools import lru_cache
 import os.path
@@ -38,9 +36,11 @@ from .solution_model import (
     SolutionI,
     SolutionII,
     SolvingStats,
+    MallooviaStats,
     GlobalSolvingStats,
     AllocationInfo,
     ReservedAllocation,
+    Status,
 )
 
 MallooviaObjectModel = Union[
@@ -362,8 +362,8 @@ def solutions_from_dict(
 
     def _convert_allocation(solution_dict):
         alloc = solution_dict["allocation"]
-        alloc["apps"] = _dict_list_to_id_list(alloc["apps"])
-        alloc["instance_classes"] = _dict_list_to_id_list(alloc["instance_classes"])
+        alloc["apps"] = tuple(_dict_list_to_id_list(alloc["apps"]))
+        alloc["instance_classes"] = tuple(_dict_list_to_id_list(alloc["instance_classes"]))
         alloc["values"] = alloc.pop("vms_number")
         alloc["values"] = tuple(
             tuple(tuple(vms) for vms in app) for app in alloc["values"]
@@ -372,23 +372,67 @@ def solutions_from_dict(
             alloc["units"] = "vms"
         if "workload_tuples" not in alloc:
             alloc["workload_tuples"] = tuple()
+        else:
+            alloc["workload_tuples"] = list(tuple(wl) for wl in alloc["workload_tuples"])
         solution_dict["allocation"] = AllocationInfo(**alloc)
 
     def _convert_reserved_allocation(solution_dict):
         alloc = solution_dict["reserved_allocation"]
-        alloc["instance_classes"] = _dict_list_to_id_list(alloc["instance_classes"])
+        alloc["instance_classes"] = tuple(_dict_list_to_id_list(alloc["instance_classes"]))
+        alloc["vms_number"] = tuple(alloc["vms_number"])
         solution_dict["reserved_allocation"] = ReservedAllocation(**alloc)
+
+    def _status_to_enum(status: str) -> Status:
+        status_enum = Status.__members__.get(status)
+        if status_enum is None:
+            raise ValueError("Invalid status '{}' in solving_stats".format(status))
+        return status_enum
+
+    def _convert_malloovia_stats(data: Dict[str, Any]) -> MallooviaStats:
+        status = data["status"]
+        data["status"] = _status_to_enum(status)
+        return MallooviaStats(**data)
+
+    def _convert_solving_stats(solving_stats: Dict[str, Any]) -> SolvingStats:
+        alg_stats = solving_stats.get("algorithm")
+        if alg_stats and alg_stats.get("malloovia"):
+            solving_stats["algorithm"] = _convert_malloovia_stats(alg_stats.get("malloovia"))
+        return SolvingStats(**solving_stats)
+
+
+    def _convert_solving_stats_phase_i(solution_dict):
+        solving_stats = solution_dict.get("solving_stats")
+        if solving_stats:
+            solution_dict["solving_stats"] = _convert_solving_stats(solving_stats)
+
+    def _convert_malloovia_stats_phase_ii(solution_dict):
+        solving_stats = solution_dict.get("solving_stats")
+        if solving_stats:
+            result = []
+            for stats in solving_stats:
+                result.append(_convert_solving_stats(stats))
+            solution_dict["solving_stats"] = result
+
+    def _convert_global_solving_stats(solution_dict):
+        g_solving_stats = solution_dict.get("global_solving_stats")
+        if g_solving_stats:
+            status = g_solving_stats["status"]
+            g_solving_stats["status"] = _status_to_enum(status)
+            solution_dict["global_solving_stats"] = GlobalSolvingStats(**g_solving_stats)
 
     def _create_solution(solution_dict):
         solution_dict["problem"] = ids_to_objects[id(solution_dict["problem"])]
 
         if "allocation" in solution_dict:
             _convert_allocation(solution_dict)
-
+           
         if _is_phase_i_solution(solution_dict):
+            _convert_solving_stats_phase_i(solution_dict)
             _convert_reserved_allocation(solution_dict)
             result = _create_phase_i_solution(solution_dict)
         else:
+            _convert_malloovia_stats_phase_ii(solution_dict)
+            _convert_global_solving_stats(solution_dict)
             result = _create_phase_ii_solution(solution_dict)
 
         ids_to_objects[id(solution_dict)] = result
@@ -819,7 +863,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
             for i, t_alloc in enumerate(values):
                 lines.append("  {}- # {} -> {}".format(tab, i, workload_tuples[i]))
                 for app_alloc in t_alloc:
-                    lines.append("    {}- [{}]".format(tab, app_alloc))
+                    lines.append("    {}- {}".format(tab, list(app_alloc)))
         else:
             lines.append("{}vms_number: []".format(tab))
         return lines
