@@ -2,9 +2,19 @@
 import ruamel.yaml  # type: ignore
 from jsonschema import validate  # type: ignore
 
-from malloovia import util
-from malloovia import phases
-from malloovia import Problem
+from malloovia import (
+    util,
+    phases,
+    Problem,
+    LimitingSet,
+    InstanceClass,
+    App,
+    Workload,
+    PerformanceSet,
+    PerformanceValues,
+    PhaseI,
+    PhaseII
+)
 from malloovia.solution_model import (
     Status,
     SolvingStats,
@@ -189,7 +199,7 @@ class TestUtilModule(PresetDataPaths):
         assert isinstance(sol_phase_ii, SolutionII)
         assert isinstance(sol_phase_i.allocation, AllocationInfo)
         assert isinstance(sol_phase_i.reserved_allocation, ReservedAllocation)
-        assert isinstance(sol_phase_ii.allocation, AllocationInfo)        
+        assert isinstance(sol_phase_ii.allocation, AllocationInfo)
         assert isinstance(sol_phase_ii.problem, Problem)
 
         # Check values
@@ -197,13 +207,103 @@ class TestUtilModule(PresetDataPaths):
         assert len(sol_phase_ii.allocation.apps) == 2
         assert sol_phase_ii.allocation.apps[0].name == "Web server"
         assert sol_phase_i.allocation.apps[1].name == "Database"
-        assert sol_phase_ii.allocation.instance_classes[1].name == "ondemand m4.xlarge in us.east"
-        assert sol_phase_i.reserved_allocation.instance_classes[0].name == "reserved m3.large in us.east_a"
+        assert (
+            sol_phase_ii.allocation.instance_classes[1].name
+            == "ondemand m4.xlarge in us.east"
+        )
+        assert (
+            sol_phase_i.reserved_allocation.instance_classes[0].name
+            == "reserved m3.large in us.east_a"
+        )
         assert sol_phase_i.reserved_allocation.vms_number[0] == 16
         assert sol_phase_ii.previous_phase is sol_phase_i
-        assert len(sol_phase_ii.allocation.values) == len(sol_phase_ii.problem.workloads[0].values)
+        assert len(sol_phase_ii.allocation.values) == len(
+            sol_phase_ii.problem.workloads[0].values
+        )
 
         # allocation.workload_tuples are read in phase I, but can be absent in Phase_II
         # In that case it is an empty list
         assert len(sol_phase_i.allocation.workload_tuples) > 0
         assert len(sol_phase_ii.allocation.workload_tuples) >= 0
+
+    def test_arbitrary_id_produce_valid_anchors(self):
+        """Test the writer with a problem which contains in the 'id' some characters
+        which are invalid for YAML anchors. The yaml writer should generate valid anchors,
+        which do not affect the representation of the problem, which is the same
+        when read back.
+        """
+
+        # Create one example problem with weird characters in the ids, such as
+        # square braces, curly braces, dots, colons, ampersands, and unicode
+        amazon_dem = LimitingSet("Cloud[1]", name="Cloud1", max_vms=0)
+        amazon_res = LimitingSet("Cloud[R]", name="CloudR", max_vms=20)
+        m3large = InstanceClass(
+            "m3.large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=20,
+            price=10,
+            time_unit="h",
+        )
+        m3large_r = InstanceClass(
+            "m3.large{r}",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
+        app0 = App("app_nº0", name="Test app0")
+        app1 = App("app_nº1", name="Test app1")
+        workloads = (
+            Workload(
+                "wl(app0)",
+                description="Test",
+                app=app0,
+                values=(30, 32, 30, 30),
+                time_unit="h",
+            ),
+            Workload(
+                "wl<app1>",
+                description="Test",
+                app=app1,
+                values=(1003, 1200, 1194, 1003),
+                time_unit="h",
+            ),
+        )
+        performances = PerformanceSet(
+            id="test&perfs",
+            time_unit="h",
+            values=PerformanceValues(
+                {m3large: {app0: 10, app1: 500}, m3large_r: {app0: 10, app1: 500}}
+            ),
+        )
+        problem_phase_i = Problem(
+            id="例",
+            name="Test problem (japanese)",
+            workloads=workloads,
+            instance_classes=(m3large, m3large_r),
+            performances=performances,
+        )
+
+        # Some trivial checks
+        assert (
+            problem_phase_i.performances.values.get_by_ids("m3.large", "app_nº0") == 10
+        )
+        assert problem_phase_i.workloads[0].values[1] == 32
+
+        problems = {"例": problem_phase_i}
+
+        # Convert this problem to YAML string
+        generated_yaml = util.problems_to_yaml(problems)
+
+        # Convert it back to python dicts and those to Malloovia classes
+        back_to_problems = util.problems_from_dict(
+            yaml.safe_load(generated_yaml), yaml_filename="RAM"
+        )
+
+        # Compare malloovia classes to ensure that they store the same information in the
+        # problem originally read from disk, and in the one generated by util.problems_to_yaml()
+        assert problems == back_to_problems
+

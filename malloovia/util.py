@@ -1,8 +1,22 @@
 """Utility functions to save and load Malloovia problem definitions"""
 
-from typing import Mapping, Dict, Sequence, Tuple, Union, Any, List, Set, Iterable
+from typing import (
+    Mapping,
+    Dict,
+    Sequence,
+    Tuple,
+    Union,
+    Any,
+    List,
+    Set,
+    Iterable,
+    NamedTuple,
+    Optional,
+)
+from functools import lru_cache
 import os.path
 import gzip
+import re
 import urllib.request
 
 # To use ruamel.yaml instead of pyyaml:
@@ -29,6 +43,56 @@ from .solution_model import (
     ReservedAllocation,
 )
 
+MallooviaObjectModel = Union[
+    App,
+    LimitingSet,
+    InstanceClass,
+    Workload,
+    PerformanceSet,
+    Problem,
+    SolutionI,
+    SolutionII,
+]
+
+def _sanitize(_id: str) -> str:
+    """Sanitizes a string to use it as part of a YAML anchor.
+    It allows only for alphanumeric characters, and all the others
+    are replaced by underscore."""
+
+    return re.sub("[^0-9a-zA-Z_]+", "_", _id)
+
+
+def _anchor_from_id(obj: MallooviaObjectModel) -> str:
+    """Given one Malloovia object, generate a valid YAML anchor by
+    combining the internal ``obj.i``, sanitized by replacing every
+    non-ascii letter or digit by ``_``, and appending an hexedecimal
+    string derived from the internal Python ``id`` of the object.LimitingSet
+    
+    Args:
+        obj: Malloovia object (NamedTuple)
+
+    Returns:
+        A string to be used as anchor
+    """
+
+    # Special handling of SolutionI and SolutionII objects
+    # since these objects contain fields of type List, and
+    # thus they are not hashable, as required by lru_cache
+    if type(obj) in [SolutionI, SolutionII]:
+        return "{}_{}".format(_sanitize(obj.id), hex(id(obj)))
+
+    # For any other case, delegate to the cached version
+    return __anchor_from_id_cached(obj)
+
+@lru_cache(maxsize=None)
+def __anchor_from_id_cached(obj: MallooviaObjectModel) -> str:
+    if "id" in obj._fields:
+        _id = _sanitize(obj.id)     # type: ignore
+    else:
+        # Some Malloovia object doesn't have an id field
+        # Use an empty string in this case
+        _id = ""
+    return "{}_{}".format(_id, hex(id(obj)))
 
 def read_problems_from_yaml(filename: str) -> Mapping[str, Problem]:
     """Reads the problem(s) definition from a YAML file.
@@ -403,7 +467,7 @@ def problems_to_yaml(
         lines = []
         lines.append("Limiting_sets:")
         for l_s in sorted(limiting_sets):
-            lines.append("  - &{}".format(l_s.id))
+            lines.append("  - &{}".format(_anchor_from_id(l_s)))
             lines.extend(_namedtuple_to_yaml(l_s, level=2))
         lines.append("")
         return lines
@@ -414,12 +478,13 @@ def problems_to_yaml(
         lines = []
         lines.append("Instance_classes:")
         for i_c in sorted(instance_classes):
+            anchor = _anchor_from_id(i_c)
             aux = i_c._replace(
                 limiting_sets="[{}]".format(
-                    ", ".join("*{}".format(ls.id) for ls in i_c.limiting_sets)
+                    ", ".join("*{}".format(_anchor_from_id(ls)) for ls in i_c.limiting_sets)
                 )
             )
-            lines.append("  - &{}".format(aux.id))
+            lines.append("  - &{}".format(anchor))
             lines.extend(_namedtuple_to_yaml(aux, level=2))
         lines.append("")
         return lines
@@ -430,7 +495,7 @@ def problems_to_yaml(
         lines = []
         lines.append("Apps:")
         for app in sorted(apps):
-            lines.append("  - &{}".format(app.id))
+            lines.append("  - &{}".format(_anchor_from_id(app)))
             lines.extend(_namedtuple_to_yaml(app, level=2))
         lines.append("")
         return lines
@@ -443,14 +508,15 @@ def problems_to_yaml(
         # But fields cannot be removed from namedtuples, so we convert it to dict
         lines.append("Workloads:")
         for w_l in sorted(workloads):
+            anchor = _anchor_from_id(w_l)
             aux = w_l._asdict()
             if aux["filename"]:
                 aux.pop("values")
             else:
                 aux.pop("filename")
                 aux.update(values=list(w_l.values))
-            aux.update(app="*{}".format(w_l.app.id))
-            lines.append("  - &{}".format(aux["id"]))
+            aux.update(app="*{}".format(_anchor_from_id(w_l.app)))
+            lines.append("  - &{}".format(anchor))
             lines.extend(_dict_to_yaml(aux, level=2))
         lines.append("")
         return lines
@@ -461,16 +527,17 @@ def problems_to_yaml(
         lines = []
         lines.append("Problems:")
         for prob in problems.values():
+            anchor = _anchor_from_id(prob)
             aux = prob._replace(
                 instance_classes="[{}]".format(
-                    ", ".join("*{}".format(ic.id) for ic in prob.instance_classes)
+                    ", ".join("*{}".format(_anchor_from_id(ic)) for ic in prob.instance_classes)
                 ),
                 workloads="[{}]".format(
-                    ", ".join("*{}".format(wl.id) for wl in prob.workloads)
+                    ", ".join("*{}".format(_anchor_from_id(wl)) for wl in prob.workloads)
                 ),
-                performances="*{}".format(prob.performances.id),
+                performances="*{}".format(_anchor_from_id(prob.performances)),
             )
-            lines.append("  - &{}".format(aux.id))
+            lines.append("  - &{}".format(anchor))
             lines.extend(_namedtuple_to_yaml(aux, level=2))
         lines.append("")
         return lines
@@ -481,13 +548,13 @@ def problems_to_yaml(
         lines = []
         lines.append("Performances:")
         for perfset in sorted(performances):
-            lines.append("  - &{}".format(perfset.id))
+            lines.append("  - &{}".format(_anchor_from_id(perfset)))
             lines.append("    id: {}".format(perfset.id))
             lines.append("    time_unit: {}".format(perfset.time_unit))
             lines.append("    values:")
             for iclass, app, perf in perfset.values:
-                lines.append("      - instance_class: *{}".format(iclass.id))
-                lines.append("        app: *{}".format(app.id))
+                lines.append("      - instance_class: *{}".format(_anchor_from_id(iclass)))
+                lines.append("        app: *{}".format(_anchor_from_id(app)))
                 lines.append("        value: {}".format(perf))
         return lines
 
@@ -617,9 +684,9 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines: List[str] = []
         lines.extend(
             (
-                "- &{}".format(sol.id),
+                "- &{}".format(_anchor_from_id(sol)),
                 "  id: {}".format(sol.id),
-                "  problem: *{}".format(sol.problem.id),
+                "  problem: *{}".format(_anchor_from_id(sol.problem)),
             )
         )
         lines.append("  solving_stats:")
@@ -638,10 +705,10 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
         lines: List[str] = []
         lines.extend(
             (
-                "- &{}".format(sol.id),
+                "- &{}".format(_anchor_from_id(sol)),
                 "  id: {}".format(sol.id),
-                "  problem: *{}".format(sol.problem.id),
-                "  previous_phase: *{}".format(sol.previous_phase.id),
+                "  problem: *{}".format(_anchor_from_id(sol.problem)),
+                "  previous_phase: *{}".format(_anchor_from_id(sol.previous_phase)),
             )
         )
 
@@ -713,7 +780,7 @@ def solutions_to_yaml(solutions: Sequence[Union[SolutionI, SolutionII]]) -> str:
 
     def list_of_references_to_yaml(lst: Sequence[Any]) -> str:
         """Generates a comma separated list of yaml references using the id"""
-        return ", ".join("*{}".format(element.id) for element in lst)
+        return ", ".join("*{}".format(_anchor_from_id(element)) for element in lst)
 
     def list_to_yaml(lst: Iterable[Any]) -> str:
         """Generates a comma separated list of python objects"""
