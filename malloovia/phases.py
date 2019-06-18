@@ -344,7 +344,7 @@ class PhaseII:
             instance_classes=solutions[0].allocation.instance_classes,
             workload_tuples=[s.allocation.workload_tuples[0] for s in solutions],
             repeats=[1] * len(solutions),
-            values=[s.allocation.values[0] for s in solutions],
+            values=tuple(s.allocation.values[0] for s in solutions),
             units="vms",
         )
 
