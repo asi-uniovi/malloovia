@@ -123,8 +123,8 @@ class InstanceClass(NamedTuple):
     is_reserved: bool = False
     """bool: True if this instance class is reserved (defaults to False)."""
 
-    cores: float = 1.0
-    """float: number of cores this instance class has (defaults to 1)."""
+    cores: int = 1
+    """int: number of cores this instance class has (defaults to 1)."""
 
 
 @remove_namedtuple_defaultdoc
