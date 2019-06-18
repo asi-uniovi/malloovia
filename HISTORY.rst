@@ -45,3 +45,13 @@ History
 
 * New class ``PhaseIIGuided`` which allows to solve a single timeslot using
   a given allocation which specifies the minimum number of VMs to keep running.
+
+2.1.0 (2019-06-18)
+------------------
+
+* Internal refactorization of Malloovia Model's classes, which are now based
+  on ``typing.NamedTuple`` instead of ``collections.namedtuple```, which
+  allows for proper type checking and documentation of the fields.
+* Several typing bugs related to YAML export and import fixed.
+* This version introduces backwards incompatibility, since it requires
+  python 3.6+ to run. However the API and usage is the same.
