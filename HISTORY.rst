@@ -1,4 +1,3 @@
-=======
 History
 =======
 
@@ -46,7 +45,7 @@ History
 * New class ``PhaseIIGuided`` which allows to solve a single timeslot using
   a given allocation which specifies the minimum number of VMs to keep running.
 
-2.1.0 (2019-06-18)
+2.1.1 (2019-06-20)
 ------------------
 
 * Internal refactorization of Malloovia Model's classes, which are now based
