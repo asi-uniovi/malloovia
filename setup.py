@@ -16,7 +16,7 @@ with open('HISTORY.rst') as history_file:
 requirements = [
     'ruamel.yaml',
     'jsonschema',
-    'pulp',
+    'pulp==2.0',
     'click',
     'progress'
 ]

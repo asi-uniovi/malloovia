@@ -54,3 +54,8 @@ History
 * Several typing bugs related to YAML export and import fixed.
 * This version introduces backwards incompatibility, since it requires
   python 3.6+ to run. However the API and usage is the same.
+
+2.2.0 (2020-03-04)
+------------------
+
+* Updated to work with PuLP 2.0 (and fix that version in setup.py)

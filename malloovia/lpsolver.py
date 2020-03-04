@@ -6,6 +6,7 @@ from typing import Sequence, List, Any
 from itertools import product as cartesian_product
 from inspect import ismethod
 from collections import namedtuple
+from uuid import uuid4
 import os
 
 import pulp  # type: ignore
@@ -716,7 +717,7 @@ class MallooviaLpMaximizeTimeslotPerformance(MallooviaLp):
 
 
 # pylint: disable=invalid-name,too-many-locals,missing-docstring,bare-except,too-many-branches,too-many-statements
-def _solve_CBC_patched(self, lp, use_mps=True):  # pragma: no cover
+def _solve_CBC_patched(self, lp, use_mps=True): # pragma: no cover
     """Solve a MIP problem using CBC, patched from original PuLP function
     to save a log with cbc's output and take from it the best bound."""
 
@@ -730,38 +731,41 @@ def _solve_CBC_patched(self, lp, use_mps=True):  # pragma: no cover
             pass
         return None
 
-    # To avoid mypy warning
-    variablesNames = constraintsNames = objectiveName = None
-
     if not self.executable(self.path):
-        raise PulpSolverError(
-            "Pulp: cannot execute %s cwd: %s" % (self.path, os.getcwd())
-        )
+        raise PulpSolverError("Pulp: cannot execute %s cwd: %s" %
+                              (self.path, os.getcwd()))
     if not self.keepFiles:
-        pid = os.getpid()
-        tmpLp = os.path.join(self.tmpDir, "%d-pulp.lp" % pid)
-        tmpMps = os.path.join(self.tmpDir, "%d-pulp.mps" % pid)
-        tmpSol = os.path.join(self.tmpDir, "%d-pulp.sol" % pid)
+        uuid = uuid4().hex
+        tmpLp = os.path.join(self.tmpDir, "%s-pulp.lp" % uuid)
+        tmpMps = os.path.join(self.tmpDir, "%s-pulp.mps" % uuid)
+        tmpSol = os.path.join(self.tmpDir, "%s-pulp.sol" % uuid)
+        tmpSol_init = os.path.join(self.tmpDir, "%s-pulp_init.sol" % uuid)
     else:
-        tmpLp = lp.name + "-pulp.lp"
-        tmpMps = lp.name + "-pulp.mps"
-        tmpSol = lp.name + "-pulp.sol"
+        tmpLp = lp.name+"-pulp.lp"
+        tmpMps = lp.name+"-pulp.mps"
+        tmpSol = lp.name+"-pulp.sol"
+        tmpSol_init = lp.name + "-pulp_init.sol"
     if use_mps:
-        _, variablesNames, constraintsNames, objectiveName = lp.writeMPS(
-            tmpMps, rename=1
-        )
-        cmds = " " + tmpMps + " "
+        vs, variablesNames, constraintsNames, objectiveName = lp.writeMPS(tmpMps, rename = 1)
+        cmds = ' '+tmpMps+" "
         if lp.sense == LpMaximize:
-            cmds += "max "
+            cmds += 'max '
     else:
-        lp.writeLP(tmpLp)
-        cmds = " " + tmpLp + " "
+        vs = lp.writeLP(tmpLp)
+        # In the Lp we do not create new variable or constraint names:
+        variablesNames = dict((v.name, v.name) for v in vs)
+        constraintsNames = dict((c, c) for c in lp.constraints)
+        objectiveName = None
+        cmds = ' '+tmpLp+" "
+    if self.mip_start:
+        self.writesol(tmpSol_init, lp, vs, variablesNames, constraintsNames)
+        cmds += 'mips {} '.format(tmpSol_init)
     if self.threads:
-        cmds += "threads %s " % self.threads
+        cmds += "threads %s "%self.threads
     if self.fracGap is not None:
-        cmds += "ratio %s " % self.fracGap
+        cmds += "ratio %s "%self.fracGap
     if self.maxSeconds is not None:
-        cmds += "sec %s " % self.maxSeconds
+        cmds += "sec %s "%self.maxSeconds
     if self.presolve:
         cmds += "presolve on "
     if self.strong:
@@ -772,52 +776,46 @@ def _solve_CBC_patched(self, lp, use_mps=True):  # pragma: no cover
         cmds += "knapsack on "
         cmds += "probing on "
     for option in self.options:
-        cmds += option + " "
+        cmds += option+" "
     if self.mip:
         cmds += "branch "
     else:
         cmds += "initialSolve "
     cmds += "printingOptions all "
-    cmds += "solution " + tmpSol + " "
+    cmds += "solution "+tmpSol+" "
     # if self.msg:
     #     pipe = None
     # else:
     #     pipe = open(os.devnull, 'w')
     log.debug(self.path + cmds)
-    with open(tmpLp + ".log", "w") as pipe:
-        cbc = subprocess.Popen((self.path + cmds).split(), stdout=pipe, stderr=pipe)
+    with open(tmpLp + ".log", 'w') as pipe:
+        cbc = subprocess.Popen((self.path + cmds).split(), stdout=pipe,
+                               stderr=pipe)
         if cbc.wait() != 0:
-            raise PulpSolverError("Pulp: Error while trying to execute " + self.path)
+            raise PulpSolverError("Pulp: Error while trying to execute " +
+                                  self.path)
     if not os.path.exists(tmpSol):
-        raise PulpSolverError("Pulp: Error while executing " + self.path)
+        raise PulpSolverError("Pulp: Error while executing "+self.path)
     if use_mps:
-        lp.status, values, reducedCosts, shadowPrices, slacks = self.readsol_MPS(
-            tmpSol, lp, lp.variables(), variablesNames, constraintsNames, objectiveName
-        )
+        status, values, reducedCosts, shadowPrices, slacks, sol_status = \
+            self.readsol_MPS(tmpSol, lp, lp.variables(), variablesNames, constraintsNames)
     else:
-        lp.status, values, reducedCosts, shadowPrices, slacks = self.readsol_LP(
+        status, values, reducedCosts, shadowPrices, slacks, sol_status = self.readsol_LP(
             tmpSol, lp, lp.variables()
         )
     lp.assignVarsVals(values)
     lp.assignVarsDj(reducedCosts)
     lp.assignConsPi(shadowPrices)
     lp.assignConsSlack(slacks, activity=True)
+    lp.assignStatus(status, sol_status)
     lp.bestBound = takeBestBoundFromLog(tmpLp + ".log")
     if not self.keepFiles:
-        try:
-            if use_mps:
-                os.remove(tmpMps)
-        except:
-            pass
-        try:
-            os.remove(tmpLp)
-        except:
-            pass
-        try:
-            os.remove(tmpSol)
-        except:
-            pass
-    return lp.status
+        for f in [tmpMps, tmpLp, tmpSol, tmpSol_init]:
+            try:
+                os.remove(f)
+            except:
+                pass
+    return status
 
 
 # Monkey patching
