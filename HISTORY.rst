@@ -49,7 +49,7 @@ History
 ------------------
 
 * Internal refactorization of Malloovia Model's classes, which are now based
-  on ``typing.NamedTuple`` instead of ``collections.namedtuple```, which
+  on ``typing.NamedTuple`` instead of ``collections.namedtuple``, which
   allows for proper type checking and documentation of the fields.
 * Several typing bugs related to YAML export and import fixed.
 * This version introduces backwards incompatibility, since it requires
@@ -59,3 +59,4 @@ History
 ------------------
 
 * Updated to work with PuLP 2.0 (and fix that version in setup.py)
+* Fixed problem with LP variable names too long wen the number of apps in the problem is large.

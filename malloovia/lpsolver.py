@@ -536,6 +536,18 @@ class MallooviaLp:
         )
 
 
+class ShortReprTuple(tuple):
+    """This class implements a tuple whose repr is not standard
+    but uses instead the hash of the tuple, to ensure a constant
+    length of the repr.
+    
+    This is required to store keys in the histogram, because they
+    are used to name LP variables which otherwise would have
+    a name too long for the solver if the number of apps is large.
+    """
+    def __repr__(self):
+        return str(hash(self))
+
 def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram:
     """Computes the histogram of the workloads.
 
@@ -560,7 +572,7 @@ def get_load_hist_from_load(workloads: Sequence[Workload]) -> MallooviaHistogram
     # Iterate over tuples of loads, one tuple per timeslot
     workload_tuples = zip(*(w.values for w in workloads))
     for load in workload_tuples:
-        hist[load] += 1
+        hist[ShortReprTuple(load)] += 1
     return hist
 
 
