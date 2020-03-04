@@ -413,6 +413,71 @@ class TestProblemCreation:
         # with (open("test_data/problems/problem3.yaml", "w")) as output:
         #     output.write(to_yaml)
 
+    def test_create_problem_with_high_number_of_apps(self):
+        """Using a high number of apps can produce long variable names
+        for the LP problem, and PuLP will reject them (or cbc will fail).
+
+        Malloovia should avoid creating such long variable names even
+        if the number of apps is high"""
+
+        amazon_dem = LimitingSet("Cloud1", name="Cloud1", max_vms=0)
+        amazon_res = LimitingSet("CloudR", name="CloudR", max_vms=20)
+
+        m3large = InstanceClass(
+            "m3large",
+            name="m3large",
+            limiting_sets=(amazon_dem,),
+            max_vms=20,
+            price=10,
+            time_unit="h",
+        )
+        m3large_r = InstanceClass(
+            "m3large_r",
+            name="m3large_r",
+            limiting_sets=(amazon_res,),
+            max_vms=20,
+            price=7,
+            time_unit="h",
+            is_reserved=True,
+        )
+
+        apps = []
+        workloads = []
+        for i in range(20):
+            app=App(f"app{i}", name=f"Test app{i}")
+            apps.append(app)
+            workloads.append(
+                Workload(
+                    f"wl_app{i}",
+                    description="Test",
+                    app=app,
+                    values=(30, 32, 30, 30),
+                    time_unit="h",
+            ))
+
+        performances = PerformanceSet(
+            id="test_perfs",
+            time_unit="h",
+            values=PerformanceValues(
+                {m3large: {app: 100 for app in apps}, m3large_r: {app: 100 for app in apps}}
+            ),
+        )
+
+        problem_phase_i = Problem(
+            id="example",
+            name="Test_problem",
+            workloads=tuple(workloads),
+            instance_classes=(m3large, m3large_r),
+            performances=performances,
+        )
+
+        assert problem_phase_i is not None
+        phaseI = phases.PhaseI(problem_phase_i)
+        solution = phaseI.solve()
+        assert solution.solving_stats.algorithm.status == Status.optimal
+
+
+
 
 class TestProblemSolvingPhaseI(PresetProblemPaths):
     """Test solving phase I for feasible, unfeasible, integer_unfeasible, and too big problems
