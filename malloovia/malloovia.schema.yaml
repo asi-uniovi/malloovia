@@ -67,6 +67,7 @@ definitions:
       price: {type: number}
       time_unit: {$ref: "#/definitions/timeUnit"}
       is_reserved: {type: boolean}
+      is_private: {type: boolean}
       max_vms: {$ref: "#/definitions/nonNegativeInteger"}
       cores: {$ref: "#/definitions/positiveIntegerDefault1"}
       limiting_sets:
