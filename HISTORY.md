@@ -60,3 +60,8 @@ History
 
 * Updated to work with PuLP 2.0 (and fix that version in setup.py)
 * Fixed problem with LP variable names too long wen the number of apps in the problem is large.
+
+2.3.0 (2020-09-25)
+------------------
+
+* Modified to support hybrid clouds via is_private attribute in instance classes
