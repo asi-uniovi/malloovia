@@ -127,7 +127,8 @@ class InstanceClass(NamedTuple):
     """int: number of cores this instance class has (defaults to 1)."""
 
     is_private: bool = False
-    """bool: True if this instance class belongs to the private cloud in a hybrid model (defaults to False)"""
+    """bool: True if this instance class belongs to the private cloud in a 
+    hybrid model (defaults to False)"""
 
 
 @remove_namedtuple_defaultdoc
