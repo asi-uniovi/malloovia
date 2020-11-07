@@ -42,17 +42,18 @@ zone1 =  LimitingSet("r1_z1", name="us.east_a", max_vms=20)
 m3large_z1 = InstanceClass(
     "m3large_r1_z1", name="reserved m3.large in us.east_a",
     limiting_sets=(zone1,), is_reserved=True,
-    price=7, max_vms=20)
+    price=7, time_unit="h", max_vms=20)
 m4xlarge_r1 = InstanceClass(
     "m4xlarge_r1", name="ondemand m4.xlarge in us.east",
     limiting_sets=(region1,), is_reserved=False,
-    price=10, max_vms=10)
+    price=10, time_unit="h", max_vms=10)
 
 # Performances
 app0 = App("a0", "Web server")
 app1 = App("a1", "Database")
 performances = PerformanceSet(
     id="example_perfs",
+    time_unit="h",
     values=PerformanceValues({
         m3large_z1: {app0: 12, app1: 500},
         m4xlarge_r1: {app0: 44, app1: 1800}
