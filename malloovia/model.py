@@ -104,7 +104,7 @@ class InstanceClass(NamedTuple):
     """str: name of the instance class, usually built from the name of the VM type
         and the name of the limiting set in which it is deployed."""
 
-    limiting_sets: Set["LimitingSet"]
+    limiting_sets: Tuple["LimitingSet", ...]
     """Set[:class:`.LimitingSet`]: tuple of :class:`.LimitingSet` objects to which
         this instance class belongs. Usually this tuple has a single element,
         but in principle an instance class can be restricted by several

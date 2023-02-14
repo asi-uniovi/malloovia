@@ -7,7 +7,7 @@ class PresetDataPaths:
     """This class computes the absolute path to the test data and the
     malloovia schemas, so that the tests can use it"""
 
-    def setup(self):
+    def setup_method(self):
         self.path_to_problems = os.path.join(
             os.path.dirname(__file__), "test_data", "problems"
         )

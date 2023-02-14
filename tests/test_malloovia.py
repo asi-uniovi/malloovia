@@ -38,8 +38,8 @@ class PresetProblemPaths(PresetDataPaths):
     """This class stores in self.problems a dictionary with the paths to the
     yaml files which store the problem examples"""
 
-    def setup(self):
-        super().setup()
+    def setup_method(self):
+        super().setup_method()
         self.problems = {}
         for problem in ("problem1", "problem2", "problem3"):
             self.problems[problem] = self.get_problem("%s.yaml" % problem)

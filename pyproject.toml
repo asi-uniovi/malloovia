@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "malloovia"
+version = "2.3.1"
+description = "Use linear programming to allocate applications to cloud infrastructure"
+authors = ["Jose Luis Diaz <jldiaz@uniovi.es>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+"ruamel.yaml" = "^0.17.21"
+jsonschema = "^4.17.3"
+pulp = "2.0"
+click = "^8.1.3"
+progress = "^1.6"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+pytest = "^7.2.0"
+black = "^22.10.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
