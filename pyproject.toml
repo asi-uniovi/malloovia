@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "malloovia"
-version = "2.3.1"
+version = "2.3.2"
 description = "Use linear programming to allocate applications to cloud infrastructure"
 authors = ["Jose Luis Diaz <jldiaz@uniovi.es>"]
 license = "MIT"
